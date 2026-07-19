@@ -2,6 +2,8 @@ package com.riyaz.banficotrainingprogram.Controller;
 
 import com.riyaz.banficotrainingprogram.Service.SystemService;
 import com.riyaz.banficotrainingprogram.dto.Healthresponse;
+import com.riyaz.banficotrainingprogram.dto.InfoResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,5 +34,10 @@ public class SystemController {
     public String post(@RequestBody String body) {
         return "LOVE"+ " " + body;
 
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<InfoResponse> getInfo() {
+        return ResponseEntity.ok(systemService.getInfo());
     }
 }
