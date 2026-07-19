@@ -18,7 +18,7 @@ public class GitInfoProvider {
     public String getCommitId(){
         return gitProperties.getCommitId();
     }
-    public Instant getCommitMessage(){
+    public Instant getCommitTime(){
         return gitProperties.getCommitTime();
     }
 //    public String getBuildTime(){
