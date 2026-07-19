@@ -4,9 +4,10 @@ import com.riyaz.banficotrainingprogram.Service.SystemService;
 import com.riyaz.banficotrainingprogram.dto.Healthresponse;
 import com.riyaz.banficotrainingprogram.dto.InfoResponse;
 import com.riyaz.banficotrainingprogram.metadata.GitInfoProvider;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-
+@Service
 public class SystemServiceImpl implements SystemService {
     private final GitInfoProvider gitInfoProvider;
 
@@ -22,16 +23,8 @@ public class SystemServiceImpl implements SystemService {
 
     @Override
     public InfoResponse getInfo() {
-        InfoResponse response = new InfoResponse("Banfico",gitInfoProvider.getCommitId(),gitInfoProvider.getBranch(),"v1",gitInfoProvider.getC
-        return new InfoResponse(
-                "Mini Banking System",
-                "1.0.0",
-                gitInfoProvider.getBranch(),
-                gitInfoProvider.getCommitId(),
-                gitInfoProvider.get(),
-                gitInfoProvider.getCommitMessage(),
-                gitInfoProvider.getBuildTime()
-        );
-        return ;
+        InfoResponse response = new InfoResponse("Banfico",gitInfoProvider.getCommitId(),gitInfoProvider.getBranch(),"v1",gitInfoProvider.getCommitTime());
+
+        return response ;
     }
 }
