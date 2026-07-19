@@ -1,15 +1,23 @@
 package com.riyaz.banficotrainingprogram.Controller;
 
+import com.riyaz.banficotrainingprogram.Service.SystemService;
+import com.riyaz.banficotrainingprogram.dto.Healthresponse;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
-public class HealthController {
+public class SystemController {
+
+    private final SystemService systemService;
+
+    public SystemController(SystemService systemService) {
+        this.systemService =systemService ;
+    }
+
     @GetMapping("/health")
     public String gethealth() {
         return "UP";
     }
-
 
     @GetMapping("/love")
     public String love() {
