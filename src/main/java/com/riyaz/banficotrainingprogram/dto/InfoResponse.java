@@ -1,15 +1,17 @@
 package com.riyaz.banficotrainingprogram.dto;
 
+import java.time.Instant;
+
 public class InfoResponse {
     private String application;
     private String version;
     private String branch;
     private String commitId;
-    private String commitTime;
+    private Instant commitTime;
 //    private String commitMessage;
 //    private String buildTime;
 
-    public InfoResponse(String application, String commitId, String branch, String version, String commitTime) {
+    public InfoResponse(String application, String commitId, String branch, String version, Instant commitTime) {
         this.application = application;
 //        this.buildTime = buildTime;
         this.commitId = commitId;
@@ -51,7 +53,7 @@ public class InfoResponse {
 //        this.commitId = commitId;
 //    }
 
-    public String getCommitTime() {
+    public Instant getCommitTime() {
         return commitTime;
     }
 
