@@ -15,13 +15,13 @@ public class SystemServiceImpl implements SystemService {
         this.gitInfoProvider = gitInfoProvider;
     }
 
-    @Override
+
     public Healthresponse getHealth() {
         Healthresponse response = new Healthresponse("UP", LocalDateTime.now());
         return response;
     }
 
-    @Override
+
     public InfoResponse getInfo() {
         InfoResponse response = new InfoResponse("Banfico",gitInfoProvider.getCommitId(),gitInfoProvider.getBranch(),"v1",gitInfoProvider.getCommitTime());
 
