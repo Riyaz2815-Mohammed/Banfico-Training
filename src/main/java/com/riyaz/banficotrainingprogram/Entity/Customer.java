@@ -30,7 +30,7 @@ public class Customer {
 
     protected Customer() {}
 
-    public Customer(String pan, String firstName, String lastName, String email, String phoneNumber, LocalDateTime createdAt) {
+    public Customer(String pan, String firstName, String lastName, String email, String phoneNumber) {
         this.pan = pan;
         this.firstName = firstName;
         this.lastName = lastName;
