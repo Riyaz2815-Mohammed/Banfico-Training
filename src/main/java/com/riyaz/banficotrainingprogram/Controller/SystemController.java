@@ -17,8 +17,8 @@ public class SystemController {
     }
 
     @GetMapping("/health")
-    public String gethealth() {
-        return "UP";
+    public ResponseEntity<Healthresponse> gethealth() {
+        return ResponseEntity.ok(systemService.getHealth());
     }
 
     @GetMapping("/love")
