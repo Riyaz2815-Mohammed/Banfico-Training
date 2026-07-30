@@ -25,11 +25,11 @@ public class TransactionServiceImpl implements TransactionService {
         Account account = accountRepo.findById(id).orElse(null);
         if (account == null) {return null;}
 
-        if (transaction.getType().equalsIgnoreCase("DEBIT")) {
+        if (transaction.getType().equalsIgnoreCase("CREDIT")) {
             Integer balance = account.getBalance() + transaction.getAmount();
             account.setBalance(balance);
         }
-        if (transaction.getType().equalsIgnoreCase("CREDIT")) {
+        if (transaction.getType().equalsIgnoreCase("DEBIT")) {
             Integer balance = account.getBalance() - transaction.getAmount();
             account.setBalance(balance);
         }
