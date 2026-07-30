@@ -20,39 +20,18 @@ public class CustomerServiceImpl implements CustomerService{
     @Override
     public CustomerResponse createCustomer(CustomerRequest request) {
 
-        Customer customer = new Customer(
-                request.getPan(),
-                request.getFirstName(),
-                request.getLastName(),
-                request.getEmail(),
-                request.getPhoneNumber()
-        );
+        Customer customer = new Customer(request.getPan(), request.getFirstName(), request.getLastName(), request.getEmail(), request.getPhoneNumber());
 
         Customer savedCustomer = customerRepo.save(customer);
 
-        return new CustomerResponse(
-                savedCustomer.getId(),
-                savedCustomer.getPan(),
-                savedCustomer.getFirstName(),
-                savedCustomer.getLastName(),
-                savedCustomer.getEmail(),
-                savedCustomer.getPhoneNumber()
-        );
+        return new CustomerResponse(savedCustomer.getId(), savedCustomer.getPan(), savedCustomer.getFirstName(), savedCustomer.getLastName(), savedCustomer.getEmail(), savedCustomer.getPhoneNumber());
     }
     @Override
     public List<CustomerResponse> getAllCustomers() {
 
         List<Customer> customers = customerRepo.findAll();
 
-        return customers.stream().map(customer -> new CustomerResponse(
-                        customer.getId(),
-                        customer.getPan(),
-                        customer.getFirstName(),
-                        customer.getLastName(),
-                        customer.getEmail(),
-                        customer.getPhoneNumber()
-                ))
-                .toList();
+        return customers.stream().map(customer -> new CustomerResponse(customer.getId(), customer.getPan(), customer.getFirstName(), customer.getLastName(), customer.getEmail(), customer.getPhoneNumber())).toList();
     }
 
 
@@ -65,14 +44,7 @@ public class CustomerServiceImpl implements CustomerService{
             return null;
         }
 
-        return new CustomerResponse(
-                customer.getId(),
-                customer.getPan(),
-                customer.getFirstName(),
-                customer.getLastName(),
-                customer.getEmail(),
-                customer.getPhoneNumber()
-        );
+        return new CustomerResponse(customer.getId(), customer.getPan(), customer.getFirstName(), customer.getLastName(), customer.getEmail(),customer.getPhoneNumber());
     }
 
 
@@ -93,14 +65,7 @@ public class CustomerServiceImpl implements CustomerService{
 
         Customer updatedCustomer = customerRepo.save(customer);
 
-        return new CustomerResponse(
-                updatedCustomer.getId(),
-                updatedCustomer.getPan(),
-                updatedCustomer.getFirstName(),
-                updatedCustomer.getLastName(),
-                updatedCustomer.getEmail(),
-                updatedCustomer.getPhoneNumber()
-        );
+        return new CustomerResponse(updatedCustomer.getId(), updatedCustomer.getPan(), updatedCustomer.getFirstName(), updatedCustomer.getLastName(),updatedCustomer.getEmail(),updatedCustomer.getPhoneNumber());
     }
 
     @Override
