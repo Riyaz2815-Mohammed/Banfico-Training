@@ -7,7 +7,7 @@ import java.util.UUID;
 public class AccountRequest {
     private String accountNo;
     private String accountType;
-//    private Integer balance;
+    private Integer balance;
     private UUID customerId;
 
     public AccountRequest() {}
@@ -39,12 +39,12 @@ public class AccountRequest {
         this.customerId = customerId;
     }
 
-//    @NotBlank
-//    public Integer getBalance() {
-//        return balance;
-//    }
-//
-//    public void setBalance(Integer balance) {
-//        this.balance = balance;
-//    }
+    @NotBlank
+    public Integer getBalance() {
+        return balance;
+    }
+
+    public void setBalance(Integer balance) {
+        this.balance = balance;
+    }
 }
