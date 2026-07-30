@@ -29,9 +29,12 @@ public class TransactionServiceImpl implements TransactionService {
             Integer balance = account.getBalance() + transaction.getAmount();
             account.setBalance(balance);
         }
-        if (transaction.getType().equalsIgnoreCase("DEBIT")) {
+        if (transaction.getType().equalsIgnoreCase("DEBIT") && account.getBalance() > transaction.getAmount()) {
             Integer balance = account.getBalance() - transaction.getAmount();
             account.setBalance(balance);
+        }
+        else{
+            return null;
         }
 
         accountRepo.save(account);
