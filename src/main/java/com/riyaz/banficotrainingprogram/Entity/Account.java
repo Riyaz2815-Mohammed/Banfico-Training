@@ -27,10 +27,11 @@ public class Account {
 
     protected  Account() {
     }
-    public Account(String accountNo, String accountType, Integer balance) {
+    public Account(String accountNo, String accountType, Integer balance,Customer customer) {
         this.accountNo = accountNo;
         this.accountType = accountType;
         this.balance = balance;
+        this.customer = customer;
     }
 
     public UUID getId() {
