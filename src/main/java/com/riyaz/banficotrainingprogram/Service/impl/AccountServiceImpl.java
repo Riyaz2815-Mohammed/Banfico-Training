@@ -45,13 +45,25 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountRequest updateAccount(UUID id,AccountRequest accountRequest) {
-        return null;
+    public AccountResponse updateAccount(UUID id,AccountRequest accountRequest) {
+        Account account = accountRepo.findById(id).orElse(null);
+        if  (account == null) {return null;}
+//        account.setAccountNo(accountRequest.getAccountNo());
+        account.setAccountType(accountRequest.getAccountType());
+        account.setBalance(accountRequest.getBalance());
+        Account updatedAccount = accountRepo.save(account);
+        return new AccountResponse(
+                updatedAccount.getId(),
+                updatedAccount.getAccountNo(),
+                updatedAccount.getAccountType(),
+                updatedAccount.getBalance(),
+                updatedAccount.getCustomer().getId()
+        );
     }
 
     @Override
     public void deleteAccount(UUID accountId) {
-
+        accountRepo.deleteById(accountId);
     }
 
 
