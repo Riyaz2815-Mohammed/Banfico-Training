@@ -1,28 +1,40 @@
 package com.riyaz.banficotrainingprogram.Service.impl;
 
 import com.riyaz.banficotrainingprogram.Entity.Account;
+import com.riyaz.banficotrainingprogram.Entity.Customer;
 import com.riyaz.banficotrainingprogram.Service.AccountService;
 import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
+import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
 
 import java.util.List;
 import java.util.UUID;
 
 public class AccountServiceImpl implements AccountService {
     private final AccountRepo accountRepo;
-    public AccountServiceImpl(AccountRepo accountRepo) {
+    private final CustomerRepo customerRepo;
+
+    public AccountServiceImpl(AccountRepo accountRepo, CustomerRepo customerRepo) {
         this.accountRepo = accountRepo;
+        this.customerRepo = customerRepo;
     }
 
     @Override
     public AccountResponse createAccount(AccountRequest accountRequest) {
-        return null;
+        Customer customer = customerRepo.findById(accountRequest.getCustomerId()).orElse(null);
+        Account account = new Account(accountRequest.getAccountNo(),accountRequest.getAccountType(),accountRequest.getBalance(),customer);
+        Account saveaccount = accountRepo.save(account);
+        return new AccountResponse(saveaccount.getId(),saveaccount.getAccountNo(),saveaccount.getAccountType(),saveaccount.getBalance(),saveaccount.getCustomer().getId());
     }
 
     @Override
     public List<AccountResponse> getAccounts() {
-        return List.of();
+        List<Account> accounts = accountRepo.findAll();
+        return accounts.stream().map(account -> new AccountResponse(
+                account.getId(),account.getAccountNo(),account.getAccountType(),
+                account.getBalance(),account.getCustomer().getId()
+        )).toList();
     }
 
     @Override
