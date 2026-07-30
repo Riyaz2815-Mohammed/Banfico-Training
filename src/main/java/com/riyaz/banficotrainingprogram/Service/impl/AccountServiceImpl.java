@@ -7,10 +7,11 @@ import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-
+@Service
 public class AccountServiceImpl implements AccountService {
     private final AccountRepo accountRepo;
     private final CustomerRepo customerRepo;
