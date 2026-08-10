@@ -5,6 +5,7 @@ import com.riyaz.banficotrainingprogram.Entity.Customer;
 import com.riyaz.banficotrainingprogram.Service.AccountService;
 import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
+import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountResponse createAccount(AccountRequest accountRequest) {
-        Customer customer = customerRepo.findById(accountRequest.getCustomerId()).orElse(null);
+        Customer customer = customerRepo.findById(accountRequest.getCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + accountRequest.getCustomerId()));
         Account account = new Account(accountRequest.getAccountNo(),accountRequest.getAccountType(),accountRequest.getBalance(),customer);
         Account saveaccount = accountRepo.save(account);
         return new AccountResponse(saveaccount.getId(),saveaccount.getAccountNo(),saveaccount.getAccountType(),saveaccount.getBalance(),saveaccount.getCustomer().getId());
@@ -40,15 +42,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountResponse getAccount(UUID accountId) {
-        Account account = accountRepo.findById(accountId).orElse(null);
-        if  (account == null) {return null;}
+        Account account = accountRepo.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
         return new AccountResponse(account.getId(),account.getAccountNo(),account.getAccountType(),account.getBalance(), account.getCustomer().getId());
     }
 
     @Override
     public AccountResponse updateAccount(UUID id,AccountRequest accountRequest) {
-        Account account = accountRepo.findById(id).orElse(null);
-        if  (account == null) {return null;}
+        Account account = accountRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
 //        account.setAccountNo(accountRequest.getAccountNo());
         account.setAccountType(accountRequest.getAccountType());
         account.setBalance(accountRequest.getBalance());
