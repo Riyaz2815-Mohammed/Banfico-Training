@@ -5,49 +5,48 @@ import com.riyaz.banficotrainingprogram.Entity.Transactions;
 import com.riyaz.banficotrainingprogram.Service.TransactionService;
 import com.riyaz.banficotrainingprogram.dto.TransactionRequest;
 import com.riyaz.banficotrainingprogram.dto.TransactionResponse;
+import com.riyaz.banficotrainingprogram.exception.InsufficientBalanceException;
+import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import com.riyaz.banficotrainingprogram.repository.TransactionsRepo;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
+@Service
 public class TransactionServiceImpl implements TransactionService {
     private final TransactionsRepo transactionsRepo;
     private final AccountRepo accountRepo;
 
     public TransactionServiceImpl(TransactionsRepo transactionsRepo, AccountRepo accountRepo) {
-        this.transactionsRepo = transactionsRepo ;
+        this.transactionsRepo = transactionsRepo;
         this.accountRepo = accountRepo;
     }
     @Override
     public TransactionResponse createTransaction(UUID id, TransactionRequest transaction) {
-        Account account = accountRepo.findById(id).orElse(null);
-        if (account == null) {return null;}
-
+        Account account = accountRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
         if (transaction.getType().equalsIgnoreCase("CREDIT")) {
-            Integer balance = account.getBalance() + transaction.getAmount();
-            account.setBalance(balance);
+            account.setBalance(account.getBalance() + transaction.getAmount());
+        } else if (transaction.getType().equalsIgnoreCase("DEBIT")) {
+            if (account.getBalance() <= transaction.getAmount()) {
+                throw new InsufficientBalanceException("Insufficient balance: available " + account.getBalance() + ", requested " + transaction.getAmount());
+            }
+            account.setBalance(account.getBalance() - transaction.getAmount());
         }
-        if (transaction.getType().equalsIgnoreCase("DEBIT") && account.getBalance() > transaction.getAmount()) {
-            Integer balance = account.getBalance() - transaction.getAmount();
-            account.setBalance(balance);
-        }
-        else{
-            return null;
-        }
-
         accountRepo.save(account);
-
-        Transactions transactions = new Transactions(transaction.getType(),transaction.getAmount(), LocalDateTime.now(), account);
+        Transactions transactions = new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account);
         Transactions saved = transactionsRepo.save(transactions);
-        return new TransactionResponse(saved.getId(),saved.getType(),saved.getAccount().getId(),saved.getAccount().getBalance(), saved.getAmount(), saved.getTransactionTime());
+        return new TransactionResponse(saved.getId(),saved.getType(),saved.getAccount().getId(),saved.getAccount().getBalance(),saved.getAmount(),saved.getTransactionTime());
     }
 
     @Override
     public List<TransactionResponse> getTransactions(UUID id) {
         List<Transactions> transactions = transactionsRepo.findByAccountId(id);
-
-        return transactions.stream().map(transaction ->new TransactionResponse(transaction.getId(),transaction.getType(),transaction.getAccount().getId(),transaction.getAccount().getBalance(), transaction.getAmount(), transaction.getTransactionTime())).toList();
+        return transactions.stream().map(transaction -> new TransactionResponse(
+                transaction.getId(),transaction.getType(),transaction.getAccount().getId(),
+                transaction.getAccount().getBalance(),transaction.getAmount(),transaction.getTransactionTime()
+        )).toList();
     }
 }

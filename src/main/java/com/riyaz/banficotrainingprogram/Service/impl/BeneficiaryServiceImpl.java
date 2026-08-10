@@ -6,6 +6,7 @@ import com.riyaz.banficotrainingprogram.Entity.Customer;
 import com.riyaz.banficotrainingprogram.Service.BeneficiaryService;
 import com.riyaz.banficotrainingprogram.dto.BeneficiaryRequest;
 import com.riyaz.banficotrainingprogram.dto.BeneficiaryResponse;
+import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import com.riyaz.banficotrainingprogram.repository.BeneficiaryRepo;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
@@ -28,10 +29,10 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
 
     @Override
     public BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest beneficiaryRequest) {
-        Customer customer = customerRepo.findById(customerId).orElse(null);
-        if (customer == null) { return null; }
-        Account account = accountRepo.findById(beneficiaryRequest.getAccountId()).orElse(null);
-        if (account == null) { return null; }
+        Customer customer = customerRepo.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+        Account account = accountRepo.findById(beneficiaryRequest.getAccountId())
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + beneficiaryRequest.getAccountId()));
         Beneficiary beneficiary = new Beneficiary(customer, account, beneficiaryRequest.getNickname());
         Beneficiary savedBeneficiary = beneficiaryRepo.save(beneficiary);
         return new BeneficiaryResponse(savedBeneficiary.getId(), savedBeneficiary.getCustomer().getId(), savedBeneficiary.getBeneficiaryAccount().getId(), savedBeneficiary.getNickname());
@@ -48,8 +49,8 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
 
     @Override
     public BeneficiaryResponse updateBeneficiaryNickname(UUID customerId, UUID beneficiaryId, BeneficiaryRequest beneficiaryRequest) {
-        Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId).orElse(null);
-        if (beneficiary == null) { return null; }
+        Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
         beneficiary.setNickname(beneficiaryRequest.getNickname());
         Beneficiary updatedBeneficiary = beneficiaryRepo.save(beneficiary);
         return new BeneficiaryResponse(updatedBeneficiary.getId(), updatedBeneficiary.getCustomer().getId(), updatedBeneficiary.getBeneficiaryAccount().getId(), updatedBeneficiary.getNickname());

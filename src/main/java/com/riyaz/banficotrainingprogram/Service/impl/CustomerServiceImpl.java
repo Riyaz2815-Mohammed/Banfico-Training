@@ -4,6 +4,7 @@ import com.riyaz.banficotrainingprogram.Entity.Customer;
 import com.riyaz.banficotrainingprogram.Service.CustomerService;
 import com.riyaz.banficotrainingprogram.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.dto.CustomerResponse;
+import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
 import org.springframework.stereotype.Service;
 
@@ -38,11 +39,8 @@ public class CustomerServiceImpl implements CustomerService{
     @Override
     public CustomerResponse getCustomerById(UUID id) {
 
-        Customer customer = customerRepo.findById(id).orElse(null);
-
-        if (customer == null) {
-            return null;
-        }
+        Customer customer = customerRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
         return new CustomerResponse(customer.getId(), customer.getPan(), customer.getFirstName(), customer.getLastName(), customer.getEmail(),customer.getPhoneNumber());
     }
@@ -51,11 +49,8 @@ public class CustomerServiceImpl implements CustomerService{
     @Override
     public CustomerResponse updateCustomer(UUID id, CustomerRequest request) {
 
-        Customer customer = customerRepo.findById(id).orElse(null);
-
-        if (customer == null) {
-            return null;
-        }
+        Customer customer = customerRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
         customer.setPan(request.getPan());
         customer.setFirstName(request.getFirstName());
