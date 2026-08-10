@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.riyaz</groupId>
     <artifactId>Banfico-Training-program</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <name>Banfico-Training program</name>
     <description>Banfico-Training program</description>
     <url/>
@@ -90,6 +90,22 @@
                         <goals>
                             <goal>build-info</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      todir="${project.basedir}/releases"/>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
