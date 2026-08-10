@@ -147,6 +147,42 @@ The system relies on the following core entities:
 - Method: DELETE
 - Response: String "Beneficiary {beneficiaryId} has been Deleted"
 
+## Global Exception Handling
+
+All errors across the API return a consistent JSON response shape:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Account not found with id: 3f2e...",
+  "timestamp": "2026-08-10T14:30:00"
+}
+```
+
+### How it works
+
+When a service cannot find an entity or a request is invalid, it throws a custom exception instead of returning null. `GlobalExceptionHandler` (annotated with `@RestControllerAdvice`) intercepts every exception thrown from any controller and maps it to the right HTTP response automatically — no changes needed in the controllers.
+
+### Exception Types
+
+| Exception | Thrown When | HTTP Status |
+|---|---|---|
+| `ResourceNotFoundException` | Entity not found in DB | 404 Not Found |
+| `InsufficientBalanceException` | DEBIT amount exceeds account balance | 400 Bad Request |
+| `MethodArgumentNotValidException` | `@Valid` check fails on request body | 400 Bad Request |
+| `Exception` (catch-all) | Any other unexpected error | 500 Internal Server Error |
+
+### Flow
+
+```
+Request → Controller → Service → throws Exception
+                                        ↓
+                          GlobalExceptionHandler catches it
+                                        ↓
+                          Returns ErrorResponse JSON to client
+```
+
 ## Project Structure
 
 ```
@@ -180,10 +216,15 @@ src/main/java/com/riyaz/banficotrainingprogram/
 │   ├── AccountResponse.java
 │   ├── BeneficiaryRequest.java
 │   ├── BeneficiaryResponse.java
+│   ├── ErrorResponse.java
 │   ├── Healthresponse.java
 │   ├── InfoResponse.java
 │   ├── TransactionRequest.java
 │   └── TransactionResponse.java
+├── exception/
+│   ├── GlobalExceptionHandler.java
+│   ├── InsufficientBalanceException.java
+│   └── ResourceNotFoundException.java
 ├── metadata/
 │   └── GitInfoProvider.java
 └── repository/
