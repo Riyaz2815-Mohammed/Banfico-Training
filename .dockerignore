@@ -1,0 +1,8 @@
+target/
+releases/
+.git/
+.idea/
+*.iml
+.env
+.*log
+README.md
