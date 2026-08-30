@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface BeneficiaryRepo extends JpaRepository<Beneficiary, UUID> {
     List<Beneficiary> findByCustomerId(UUID customerId);
+    List<Beneficiary> findByBeneficiaryAccountId(UUID accountId);
 }

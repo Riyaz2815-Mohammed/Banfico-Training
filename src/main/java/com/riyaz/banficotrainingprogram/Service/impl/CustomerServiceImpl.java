@@ -1,11 +1,16 @@
 package com.riyaz.banficotrainingprogram.Service.impl;
 
+import com.riyaz.banficotrainingprogram.Entity.Account;
 import com.riyaz.banficotrainingprogram.Entity.Customer;
 import com.riyaz.banficotrainingprogram.Service.CustomerService;
 import com.riyaz.banficotrainingprogram.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.dto.CustomerResponse;
 import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
+import com.riyaz.banficotrainingprogram.repository.AccountRepo;
+import com.riyaz.banficotrainingprogram.repository.BeneficiaryRepo;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
+import com.riyaz.banficotrainingprogram.repository.TransactionsRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,8 +20,14 @@ import java.util.UUID;
 public class CustomerServiceImpl implements CustomerService{
 
     private final CustomerRepo customerRepo;
-    public CustomerServiceImpl(CustomerRepo customerRepo) {
+    private final AccountRepo accountRepo;
+    private final TransactionsRepo transactionsRepo;
+    private final BeneficiaryRepo beneficiaryRepo;
+    public CustomerServiceImpl(CustomerRepo customerRepo, AccountRepo accountRepo, TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo) {
         this.customerRepo = customerRepo;
+        this.accountRepo = accountRepo;
+        this.transactionsRepo = transactionsRepo;
+        this.beneficiaryRepo = beneficiaryRepo;
     }
     @Override
     public CustomerResponse createCustomer(CustomerRequest request) {
@@ -64,8 +75,17 @@ public class CustomerServiceImpl implements CustomerService{
     }
 
     @Override
+    @Transactional
     public void deleteCustomer(UUID id) {
-
+        customerRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        beneficiaryRepo.deleteAll(beneficiaryRepo.findByCustomerId(id));
+        List<Account> accounts = accountRepo.findByCustomerId(id);
+        for (Account account : accounts) {
+            beneficiaryRepo.deleteAll(beneficiaryRepo.findByBeneficiaryAccountId(account.getId()));
+            transactionsRepo.deleteAll(transactionsRepo.findByAccountId(account.getId()));
+        }
+        accountRepo.deleteAll(accounts);
         customerRepo.deleteById(id);
     }
 
