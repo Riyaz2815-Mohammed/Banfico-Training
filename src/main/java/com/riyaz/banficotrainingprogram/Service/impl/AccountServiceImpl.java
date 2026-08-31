@@ -7,7 +7,10 @@ import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
 import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.repository.AccountRepo;
+import com.riyaz.banficotrainingprogram.repository.BeneficiaryRepo;
 import com.riyaz.banficotrainingprogram.repository.CustomerRepo;
+import com.riyaz.banficotrainingprogram.repository.TransactionsRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +19,14 @@ import java.util.UUID;
 public class AccountServiceImpl implements AccountService {
     private final AccountRepo accountRepo;
     private final CustomerRepo customerRepo;
+    private final TransactionsRepo transactionsRepo;
+    private final BeneficiaryRepo beneficiaryRepo;
 
-    public AccountServiceImpl(AccountRepo accountRepo, CustomerRepo customerRepo) {
+    public AccountServiceImpl(AccountRepo accountRepo, CustomerRepo customerRepo, TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo) {
         this.accountRepo = accountRepo;
         this.customerRepo = customerRepo;
+        this.transactionsRepo = transactionsRepo;
+        this.beneficiaryRepo = beneficiaryRepo;
     }
 
     @Override
@@ -65,7 +72,12 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional
     public void deleteAccount(UUID accountId) {
+        accountRepo.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+        beneficiaryRepo.deleteAll(beneficiaryRepo.findByBeneficiaryAccountId(accountId));
+        transactionsRepo.deleteAll(transactionsRepo.findByAccountId(accountId));
         accountRepo.deleteById(accountId);
     }
 
