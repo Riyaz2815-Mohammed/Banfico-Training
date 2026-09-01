@@ -25,8 +25,8 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TransactionResponse>> getTransactions(@PathVariable UUID accountId) {
-        List<TransactionResponse> transactionResponses = transactionService.getTransactions(accountId);
+    public ResponseEntity<List<TransactionResponse>> getTransactions(@PathVariable UUID id) {
+        List<TransactionResponse> transactionResponses = transactionService.getTransactions(id);
         return ResponseEntity.ok(transactionResponses);
     }
 }
