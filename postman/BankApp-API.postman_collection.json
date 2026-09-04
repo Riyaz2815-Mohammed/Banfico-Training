@@ -1,0 +1,418 @@
+{
+  "info": {
+    "name": "BankApp API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "keycloakUrl", "value": "http://localhost:8180" },
+    { "key": "realm", "value": "bankapp" },
+    { "key": "token", "value": "" },
+    { "key": "riyazCustomerId", "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567891" },
+    { "key": "riyazSavingsAccountId", "value": "b1b2c3d4-e5f6-7890-abcd-ef1234567801" },
+    { "key": "riyazCurrentAccountId", "value": "b1b2c3d4-e5f6-7890-abcd-ef1234567802" }
+  ],
+  "item": [
+    {
+      "name": "🔑 Auth",
+      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. Regular users are scoped to their own data via /api/me/*.",
+      "item": [
+        {
+          "name": "Get Token (riyaz — admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: admin (riyaz)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "username", "value": "riyaz" },
+              { "key": "password", "value": "Riyaz@1234" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Get Token (priya — user)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: user (priya)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "username", "value": "priya" },
+              { "key": "password", "value": "Priya@1234" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Get Token (arjun — user)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: user (arjun)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "username", "value": "arjun" },
+              { "key": "password", "value": "Arjun@1234" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Get Token (sneha — user)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: user (sneha)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "username", "value": "sneha" },
+              { "key": "password", "value": "Sneha@1234" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Get Token (rahul — user)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: user (rahul)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "username", "value": "rahul" },
+              { "key": "password", "value": "Rahul@1234" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+        },
+        {
+          "name": "App Info",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/info" }
+        }
+      ]
+    },
+    {
+      "name": "🙋 Me (Current User)",
+      "description": "All /api/me/* endpoints are scoped to the authenticated user via JWT email — no customer ID needed in the URL.",
+      "item": [
+        {
+          "name": "Get My Accounts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/me/accounts",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns only the accounts belonging to the logged-in user."
+          }
+        },
+        {
+          "name": "Get My Beneficiaries",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns saved beneficiaries for the logged-in user. Each entry includes accountHolderName, accountNo and accountType."
+          }
+        },
+        {
+          "name": "Add Beneficiary",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"<UUID of recipient account — get from /api/accounts/lookup>\",\n  \"nickname\": \"Priya\"\n}"
+            },
+            "description": "Add a beneficiary. Use GET /api/accounts/lookup?accountNo= first to resolve the account UUID."
+          }
+        },
+        {
+          "name": "Remove Beneficiary",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/me/beneficiaries/:beneficiaryId",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Only removes a beneficiary that belongs to the logged-in user. Returns 403 if the beneficiary belongs to someone else."
+          }
+        },
+        {
+          "name": "Transfer Money",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/me/transfer",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{riyazSavingsAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 5000,\n  \"note\": \"Rent for June\"\n}"
+            },
+            "description": "Transfers money between two accounts atomically. Debits fromAccountId and credits recipientAccountNo. Both accounts get a transaction record with a description. Returns referenceId, remainingBalance and timestamp.\n\nErrors:\n- 403 if fromAccountId does not belong to the logged-in user\n- 400 if sender tries to transfer to their own account\n- 422/500 if balance is insufficient (InsufficientBalanceException)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Customers (Admin only)",
+      "description": "All customer management requires the admin role. Non-admins are redirected to the dashboard in the UI.",
+      "item": [
+        {
+          "name": "Get All Customers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customers",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Customer (Riyaz)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/customers",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pan\": \"XYZAB1234Z\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"test@bankapp.com\",\n  \"phoneNumber\": \"9999999999\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Customer (Riyaz)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pan\": \"ABCPR1234R\",\n  \"firstName\": \"Riyaz\",\n  \"lastName\": \"Ahmed\",\n  \"email\": \"riyaz@bankapp.com\",\n  \"phoneNumber\": \"9876543210\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Customer (ADMIN only — 403 for user role)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏦 Accounts",
+      "description": "GET /api/accounts returns all accounts (admin). GET /api/accounts/lookup finds by account number — used before adding a beneficiary or initiating a transfer.",
+      "item": [
+        {
+          "name": "Lookup Account by Number",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/lookup?accountNo=SB002001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "accounts", "lookup"],
+              "query": [{ "key": "accountNo", "value": "SB002001" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns id, accountNo, accountType and accountHolderName for the given account number. Used by the Transfer and Add Beneficiary flows to confirm the recipient before submitting."
+          }
+        },
+        {
+          "name": "Get All Accounts (admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Account by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Create Account (admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/accounts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": \"SB009001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 50000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Account (admin)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": \"SB001001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 105000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Account (ADMIN only — 403 for user role)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "💸 Transactions",
+      "description": "Transactions now include a description field. Transfers via /api/me/transfer auto-populate descriptions like 'Transfer to Priya Kumar (SB002001)'.",
+      "item": [
+        {
+          "name": "Get Transactions (Riyaz SAVINGS)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Transactions (Riyaz CURRENT)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts/{{riyazCurrentAccountId}}/transactions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Credit Transaction",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"CREDIT\",\n  \"amount\": 5000\n}" }
+          }
+        },
+        {
+          "name": "Debit Transaction",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"DEBIT\",\n  \"amount\": 2000\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Beneficiaries (Admin — by customerId)",
+      "description": "Admin-scoped beneficiary endpoints using customerId in the URL. For user-scoped beneficiary management use /api/me/beneficiaries instead.",
+      "item": [
+        {
+          "name": "Get Beneficiaries (Riyaz)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Add Beneficiary (admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567804\",\n  \"nickname\": \"Arjun Savings\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Beneficiary Nickname",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries/:beneficiaryId",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567803\",\n  \"nickname\": \"Priya - Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Beneficiary (ADMIN only)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries/:beneficiaryId",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    }
+  ]
+}
