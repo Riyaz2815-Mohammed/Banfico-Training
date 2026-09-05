@@ -1,9 +1,11 @@
 package com.riyaz.banficotrainingprogram.Controller;
 
-import com.riyaz.banficotrainingprogram.Entity.Account;
 import com.riyaz.banficotrainingprogram.Service.AccountService;
+import com.riyaz.banficotrainingprogram.dto.AccountLookupResponse;
 import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
+import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
+import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +17,22 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
-    private final AccountService  accountService;
-    public  AccountController(AccountService accountService) {
+    private final AccountService accountService;
+    private final AccountRepo accountRepo;
+
+    public AccountController(AccountService accountService, AccountRepo accountRepo) {
         this.accountService = accountService;
+        this.accountRepo = accountRepo;
+    }
+
+    @GetMapping("/lookup")
+    public ResponseEntity<AccountLookupResponse> lookupByAccountNo(@RequestParam String accountNo) {
+        return accountRepo.findByAccountNo(accountNo)
+                .map(a -> {
+                    String holderName = a.getCustomer().getFirstName() + " " + a.getCustomer().getLastName();
+                    return ResponseEntity.ok(new AccountLookupResponse(a.getId(), a.getAccountNo(), a.getAccountType(), holderName));
+                })
+                .orElseThrow(() -> new ResourceNotFoundException("No account found with number: " + accountNo));
     }
     @PostMapping
     public ResponseEntity<AccountResponse> createaccount(@Valid @RequestBody AccountRequest account) {

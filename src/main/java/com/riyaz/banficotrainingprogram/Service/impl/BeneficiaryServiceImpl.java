@@ -27,6 +27,20 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         this.accountRepo = accountRepo;
     }
 
+    private BeneficiaryResponse toResponse(Beneficiary b) {
+        Account acc = b.getBeneficiaryAccount();
+        Customer holder = acc.getCustomer();
+        return new BeneficiaryResponse(
+                b.getId(),
+                b.getCustomer().getId(),
+                acc.getId(),
+                acc.getAccountNo(),
+                acc.getAccountType(),
+                holder.getFirstName() + " " + holder.getLastName(),
+                b.getNickname()
+        );
+    }
+
     @Override
     public BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest beneficiaryRequest) {
         Customer customer = customerRepo.findById(customerId)
@@ -34,17 +48,14 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         Account account = accountRepo.findById(beneficiaryRequest.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + beneficiaryRequest.getAccountId()));
         Beneficiary beneficiary = new Beneficiary(customer, account, beneficiaryRequest.getNickname());
-        Beneficiary savedBeneficiary = beneficiaryRepo.save(beneficiary);
-        return new BeneficiaryResponse(savedBeneficiary.getId(), savedBeneficiary.getCustomer().getId(), savedBeneficiary.getBeneficiaryAccount().getId(), savedBeneficiary.getNickname());
+        return toResponse(beneficiaryRepo.save(beneficiary));
     }
 
     @Override
     public List<BeneficiaryResponse> getBeneficiaries(UUID customerId) {
-        List<Beneficiary> beneficiaries = beneficiaryRepo.findByCustomerId(customerId);
-        return beneficiaries.stream().map(beneficiary -> new BeneficiaryResponse(
-                beneficiary.getId(), beneficiary.getCustomer().getId(),
-                beneficiary.getBeneficiaryAccount().getId(), beneficiary.getNickname()
-        )).toList();
+        return beneficiaryRepo.findByCustomerId(customerId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
@@ -52,8 +63,7 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
         beneficiary.setNickname(beneficiaryRequest.getNickname());
-        Beneficiary updatedBeneficiary = beneficiaryRepo.save(beneficiary);
-        return new BeneficiaryResponse(updatedBeneficiary.getId(), updatedBeneficiary.getCustomer().getId(), updatedBeneficiary.getBeneficiaryAccount().getId(), updatedBeneficiary.getNickname());
+        return toResponse(beneficiaryRepo.save(beneficiary));
     }
 
     @Override
