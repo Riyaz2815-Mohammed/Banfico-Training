@@ -14,7 +14,7 @@
   ],
   "item": [
     {
-      "name": "🔑 Auth",
+      "name": "Auth",
       "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. Regular users are scoped to their own data via /api/me/*.",
       "item": [
         {
@@ -105,7 +105,7 @@
       ]
     },
     {
-      "name": "🏥 System",
+      "name": "System",
       "item": [
         {
           "name": "Health Check",
@@ -118,7 +118,7 @@
       ]
     },
     {
-      "name": "🙋 Me (Current User)",
+      "name": "Me (Current User)",
       "description": "All /api/me/* endpoints are scoped to the authenticated user via JWT email — no customer ID needed in the URL.",
       "item": [
         {
@@ -183,7 +183,7 @@
       ]
     },
     {
-      "name": "👤 Customers (Admin only)",
+      "name": "Customers (Admin only)",
       "description": "All customer management requires the admin role. Non-admins are redirected to the dashboard in the UI.",
       "item": [
         {
@@ -243,7 +243,7 @@
       ]
     },
     {
-      "name": "🏦 Accounts",
+      "name": "Accounts",
       "description": "GET /api/accounts returns all accounts (admin). GET /api/accounts/lookup finds by account number — used before adding a beneficiary or initiating a transfer.",
       "item": [
         {
@@ -317,7 +317,7 @@
       ]
     },
     {
-      "name": "💸 Transactions",
+      "name": "Transactions",
       "description": "Transactions now include a description field. Transfers via /api/me/transfer auto-populate descriptions like 'Transfer to Priya Kumar (SB002001)'.",
       "item": [
         {
@@ -363,7 +363,7 @@
       ]
     },
     {
-      "name": "👥 Beneficiaries (Admin — by customerId)",
+      "name": "Beneficiaries (Admin — by customerId)",
       "description": "Admin-scoped beneficiary endpoints using customerId in the URL. For user-scoped beneficiary management use /api/me/beneficiaries instead.",
       "item": [
         {
