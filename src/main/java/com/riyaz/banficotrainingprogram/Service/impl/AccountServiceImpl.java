@@ -23,40 +23,39 @@ public class AccountServiceImpl implements AccountService {
     private final TransactionsRepo transactionsRepo;
     private final BeneficiaryRepo beneficiaryRepo;
 
-    public AccountServiceImpl(AccountRepo accountRepo, CustomerRepo customerRepo,
-                               TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo) {
+    public AccountServiceImpl(AccountRepo accountRepo, CustomerRepo customerRepo, TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo) {
         this.accountRepo = accountRepo;
         this.customerRepo = customerRepo;
         this.transactionsRepo = transactionsRepo;
         this.beneficiaryRepo = beneficiaryRepo;
     }
 
-    private AccountResponse toResponse(Account a) {
-        Customer c = a.getCustomer();
-        return new AccountResponse(
-                a.getId(), a.getAccountNo(), a.getAccountType(), a.getBalance(),
-                c.getId(), c.getFirstName() + " " + c.getLastName());
-    }
-
     @Override
     public AccountResponse createAccount(AccountRequest accountRequest) {
         Customer customer = customerRepo.findById(accountRequest.getCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + accountRequest.getCustomerId()));
-        Account saved = accountRepo.save(new Account(
-                accountRequest.getAccountNo(), accountRequest.getAccountType(),
-                accountRequest.getBalance(), customer));
-        return toResponse(saved);
+        Account account = new Account(accountRequest.getAccountNo(), accountRequest.getAccountType(), accountRequest.getBalance(), customer);
+        Account savedAccount = accountRepo.save(account);
+        String customerName = savedAccount.getCustomer().getFirstName() + " " + savedAccount.getCustomer().getLastName();
+        return new AccountResponse(savedAccount.getId(), savedAccount.getAccountNo(), savedAccount.getAccountType(), savedAccount.getBalance(), savedAccount.getCustomer().getId(), customerName);
     }
 
     @Override
     public List<AccountResponse> getAccounts() {
-        return accountRepo.findAll().stream().map(this::toResponse).toList();
+        List<Account> accounts = accountRepo.findAll();
+        return accounts.stream().map(account -> new AccountResponse(
+                account.getId(), account.getAccountNo(), account.getAccountType(),
+                account.getBalance(), account.getCustomer().getId(),
+                account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName()
+        )).toList();
     }
 
     @Override
     public AccountResponse getAccount(UUID accountId) {
-        return toResponse(accountRepo.findById(accountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId)));
+        Account account = accountRepo.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+        String customerName = account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName();
+        return new AccountResponse(account.getId(), account.getAccountNo(), account.getAccountType(), account.getBalance(), account.getCustomer().getId(), customerName);
     }
 
     @Override
@@ -65,7 +64,9 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
         account.setAccountType(accountRequest.getAccountType());
         account.setBalance(accountRequest.getBalance());
-        return toResponse(accountRepo.save(account));
+        Account updatedAccount = accountRepo.save(account);
+        String customerName = updatedAccount.getCustomer().getFirstName() + " " + updatedAccount.getCustomer().getLastName();
+        return new AccountResponse(updatedAccount.getId(), updatedAccount.getAccountNo(), updatedAccount.getAccountType(), updatedAccount.getBalance(), updatedAccount.getCustomer().getId(), customerName);
     }
 
     @Override

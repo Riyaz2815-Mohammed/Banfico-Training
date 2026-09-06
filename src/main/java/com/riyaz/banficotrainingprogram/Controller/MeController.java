@@ -34,71 +34,65 @@ public class MeController {
         this.beneficiaryRepo = beneficiaryRepo;
     }
 
-    private Customer resolveCustomer(Jwt jwt) {
-        String email = jwt.getClaimAsString("email");
-        return customerRepo.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
-    }
-
-    private BeneficiaryResponse toResponse(Beneficiary b) {
-        Account acc = b.getBeneficiaryAccount();
-        Customer holder = acc.getCustomer();
-        return new BeneficiaryResponse(
-                b.getId(),
-                b.getCustomer().getId(),
-                acc.getId(),
-                acc.getAccountNo(),
-                acc.getAccountType(),
-                holder.getFirstName() + " " + holder.getLastName(),
-                b.getNickname()
-        );
-    }
-
     // ─── Accounts ────────────────────────────────────────────────────────────
 
     @GetMapping("/accounts")
     public ResponseEntity<List<AccountResponse>> getMyAccounts(@AuthenticationPrincipal Jwt jwt) {
-        Customer customer = resolveCustomer(jwt);
-        List<AccountResponse> responses = accountRepo.findByCustomerId(customer.getId())
+        String email = jwt.getClaimAsString("email");
+        Customer customer = customerRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        List<AccountResponse> accountResponses = accountRepo.findByCustomerId(customer.getId())
                 .stream()
-                .map(a -> new AccountResponse(
-                        a.getId(), a.getAccountNo(), a.getAccountType(),
-                        a.getBalance(), a.getCustomer().getId(),
-                        a.getCustomer().getFirstName() + " " + a.getCustomer().getLastName()))
+                .map(account -> new AccountResponse(
+                        account.getId(), account.getAccountNo(), account.getAccountType(),
+                        account.getBalance(), account.getCustomer().getId(),
+                        account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName()))
                 .toList();
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(accountResponses);
     }
 
     // ─── Beneficiaries ───────────────────────────────────────────────────────
 
     @GetMapping("/beneficiaries")
     public ResponseEntity<List<BeneficiaryResponse>> getMyBeneficiaries(@AuthenticationPrincipal Jwt jwt) {
-        Customer customer = resolveCustomer(jwt);
-        List<BeneficiaryResponse> responses = beneficiaryRepo.findByCustomerId(customer.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
-        return ResponseEntity.ok(responses);
+        String email = jwt.getClaimAsString("email");
+        Customer customer = customerRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        List<Beneficiary> beneficiaries = beneficiaryRepo.findByCustomerId(customer.getId());
+        List<BeneficiaryResponse> beneficiaryResponses = beneficiaries.stream().map(beneficiary -> {
+            String accountHolderName = beneficiary.getBeneficiaryAccount().getCustomer().getFirstName() + " " + beneficiary.getBeneficiaryAccount().getCustomer().getLastName();
+            return new BeneficiaryResponse(
+                    beneficiary.getId(), beneficiary.getCustomer().getId(),
+                    beneficiary.getBeneficiaryAccount().getId(), beneficiary.getBeneficiaryAccount().getAccountNo(),
+                    beneficiary.getBeneficiaryAccount().getAccountType(), accountHolderName, beneficiary.getNickname());
+        }).toList();
+        return ResponseEntity.ok(beneficiaryResponses);
     }
 
     @PostMapping("/beneficiaries")
-    public ResponseEntity<BeneficiaryResponse> addMyBeneficiary(
-            @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody BeneficiaryRequest request) {
-        Customer customer = resolveCustomer(jwt);
-        Account account = accountRepo.findById(request.getAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + request.getAccountId()));
-        Beneficiary beneficiary = new Beneficiary(customer, account, request.getNickname());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(beneficiaryRepo.save(beneficiary)));
+    public ResponseEntity<BeneficiaryResponse> addMyBeneficiary(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody BeneficiaryRequest beneficiaryRequest) {
+        String email = jwt.getClaimAsString("email");
+        Customer customer = customerRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        Account account = accountRepo.findById(beneficiaryRequest.getAccountId())
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + beneficiaryRequest.getAccountId()));
+        Beneficiary beneficiary = new Beneficiary(customer, account, beneficiaryRequest.getNickname());
+        Beneficiary savedBeneficiary = beneficiaryRepo.save(beneficiary);
+        String accountHolderName = savedBeneficiary.getBeneficiaryAccount().getCustomer().getFirstName() + " " + savedBeneficiary.getBeneficiaryAccount().getCustomer().getLastName();
+        BeneficiaryResponse beneficiaryResponse = new BeneficiaryResponse(
+                savedBeneficiary.getId(), savedBeneficiary.getCustomer().getId(),
+                savedBeneficiary.getBeneficiaryAccount().getId(), savedBeneficiary.getBeneficiaryAccount().getAccountNo(),
+                savedBeneficiary.getBeneficiaryAccount().getAccountType(), accountHolderName, savedBeneficiary.getNickname());
+        return ResponseEntity.status(HttpStatus.CREATED).body(beneficiaryResponse);
     }
 
     @DeleteMapping("/beneficiaries/{beneficiaryId}")
-    public ResponseEntity<Void> removeMyBeneficiary(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable UUID beneficiaryId) {
-        Customer customer = resolveCustomer(jwt);
+    public ResponseEntity<Void> removeMyBeneficiary(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID beneficiaryId) {
+        String email = jwt.getClaimAsString("email");
+        Customer customer = customerRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
         Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
         if (!beneficiary.getCustomer().getId().equals(customer.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
