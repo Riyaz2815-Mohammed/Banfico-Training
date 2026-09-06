@@ -63,7 +63,8 @@ public class MeController {
                 .stream()
                 .map(a -> new AccountResponse(
                         a.getId(), a.getAccountNo(), a.getAccountType(),
-                        a.getBalance(), a.getCustomer().getId()))
+                        a.getBalance(), a.getCustomer().getId(),
+                        a.getCustomer().getFirstName() + " " + a.getCustomer().getLastName()))
                 .toList();
         return ResponseEntity.ok(responses);
     }
