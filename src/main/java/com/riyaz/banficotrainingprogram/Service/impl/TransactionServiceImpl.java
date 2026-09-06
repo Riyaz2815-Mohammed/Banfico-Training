@@ -38,13 +38,14 @@ public class TransactionServiceImpl implements TransactionService {
             account.setBalance(account.getBalance() - transaction.getAmount());
         }
         accountRepo.save(account);
-        Transactions savedTransaction = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account));
+        String description = transaction.getType().equalsIgnoreCase("CREDIT") ? "Credit" : "Debit";
+        Transactions savedTransaction = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, description));
         return new TransactionResponse(savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(), savedTransaction.getAccount().getBalance(), savedTransaction.getAmount(), savedTransaction.getTransactionTime(), savedTransaction.getDescription());
     }
 
     @Override
     public List<TransactionResponse> getTransactions(UUID id) {
-        List<Transactions> transactions = transactionsRepo.findByAccountId(id);
+        List<Transactions> transactions = transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(id);
         return transactions.stream().map(transaction -> new TransactionResponse(
                 transaction.getId(), transaction.getType(), transaction.getAccount().getId(),
                 transaction.getAccount().getBalance(), transaction.getAmount(),

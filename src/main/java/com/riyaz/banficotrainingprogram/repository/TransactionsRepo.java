@@ -8,5 +8,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TransactionsRepo extends JpaRepository<Transactions, UUID> {
-    List<Transactions> findByAccountId(UUID accountId);
+    List<Transactions> findByAccountIdOrderByTransactionTimeDesc(UUID accountId);
 }
