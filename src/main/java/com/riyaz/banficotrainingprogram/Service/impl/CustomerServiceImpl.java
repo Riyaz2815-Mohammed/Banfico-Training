@@ -83,7 +83,7 @@ public class CustomerServiceImpl implements CustomerService{
         List<Account> accounts = accountRepo.findByCustomerId(id);
         for (Account account : accounts) {
             beneficiaryRepo.deleteAll(beneficiaryRepo.findByBeneficiaryAccountId(account.getId()));
-            transactionsRepo.deleteAll(transactionsRepo.findByAccountId(account.getId()));
+            transactionsRepo.deleteAll(transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(account.getId()));
         }
         accountRepo.deleteAll(accounts);
         customerRepo.deleteById(id);

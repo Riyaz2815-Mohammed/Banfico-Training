@@ -75,7 +75,7 @@ public class AccountServiceImpl implements AccountService {
         accountRepo.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
         beneficiaryRepo.deleteAll(beneficiaryRepo.findByBeneficiaryAccountId(accountId));
-        transactionsRepo.deleteAll(transactionsRepo.findByAccountId(accountId));
+        transactionsRepo.deleteAll(transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(accountId));
         accountRepo.deleteById(accountId);
     }
 }
