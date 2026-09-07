@@ -21,7 +21,10 @@
     { "key": "priyaPassword", "value": "FILL_IN" },
     { "key": "arjunPassword", "value": "FILL_IN" },
     { "key": "snehaPassword", "value": "FILL_IN" },
-    { "key": "rahulPassword", "value": "FILL_IN" }
+    { "key": "rahulPassword", "value": "FILL_IN" },
+    { "key": "managerPassword", "value": "FILL_IN", "description": "Password for the manager user (BankManager role)" },
+    { "key": "registeredCustomerId", "value": "" },
+    { "key": "registeredKeycloakUserId", "value": "" }
   ],
   "item": [
     {
@@ -175,8 +178,99 @@
       ]
     },
     {
+      "name": "BankManager Workflow (Demo)",
+      "description": "Run top to bottom to demo the full BankManager onboarding flow.\n\nSteps:\n1. Login as manager (BankManager role)\n2. Register a new user — creates both Keycloak account and customer DB record\n3. Login as admin to create an account for the new customer\n4. Create account for the registered customer\n5. Share credentials with the user — they log in and change their password\n\nNote: after Step 2, check the console log for the customerId and keycloakUserId.",
+      "item": [
+        {
+          "name": "Step 1 — Login as Manager",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token', json.access_token);",
+            "console.log('Logged in as manager (BankManager role)');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
+              { "key": "username", "value": "manager" },
+              { "key": "password", "value": "{{managerPassword}}" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Step 2 — Register New User",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.customerId) {",
+            "  pm.collectionVariables.set('registeredCustomerId', json.customerId);",
+            "  pm.collectionVariables.set('registeredKeycloakUserId', json.keycloakUserId);",
+            "  console.log('Registered: ' + json.firstName + ' ' + json.lastName + ' (' + json.email + ')');",
+            "  console.log('customerId: ' + json.customerId);",
+            "  console.log('keycloakUserId: ' + json.keycloakUserId);",
+            "  console.log(json.message);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/register",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
+            },
+            "description": "Creates a Keycloak user account (with user role and temporary password) AND a customer DB record in one call. Returns customerId, keycloakUserId and a confirmation message.\n\nRoles that can call this: admin, BankManager.\n\nThe new user can log in immediately with the username/password above. On first login Keycloak will prompt them to set a new password (because temporaryPassword: true)."
+          }
+        },
+        {
+          "name": "Step 3 — Login as Admin (to create account)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token', json.access_token);",
+            "console.log('Switched to admin token — ready to create account');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
+              { "key": "username", "value": "riyaz" },
+              { "key": "password", "value": "{{riyazPassword}}" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Step 4 — Create Account for Registered Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/accounts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": \"SB010001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 10000,\n  \"customerId\": \"{{registeredCustomerId}}\"\n}"
+            },
+            "description": "Creates a savings account for the newly registered customer. registeredCustomerId was auto-captured in Step 2. After this step the user can see their account when they log in."
+          }
+        }
+      ]
+    },
+    {
       "name": "Auth",
-      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. Regular users are scoped to their own data via /api/me/*.",
+      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. BankManager (manager) can register users and view customers. Regular users are scoped to their own data via /api/me/*.",
       "item": [
         {
           "name": "Get Token (riyaz — admin)",
@@ -262,6 +356,23 @@
               { "key": "scope", "value": "openid" }
             ]}
           }
+        },
+        {
+          "name": "Get Token (manager — BankManager)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: BankManager (manager)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
+              { "key": "username", "value": "manager" },
+              { "key": "password", "value": "{{managerPassword}}" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
         }
       ]
     },
@@ -344,9 +455,34 @@
       ]
     },
     {
-      "name": "Customers (Admin only)",
-      "description": "All customer management requires the admin role. Non-admins are redirected to the dashboard in the UI.",
+      "name": "Customers (Admin + BankManager)",
+      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/register: creates Keycloak user + customer DB record (admin + BankManager).\nPOST/PUT/GET /api/customers: admin only (except view).\nDELETE /api/customers: admin only.",
       "item": [
+        {
+          "name": "Register User (admin + BankManager)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.customerId) {",
+            "  pm.collectionVariables.set('registeredCustomerId', json.customerId);",
+            "  console.log('Registered: ' + json.firstName + ' ' + json.lastName);",
+            "  console.log('customerId: ' + json.customerId);",
+            "  console.log(json.message);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/register",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
+            },
+            "description": "Creates a Keycloak user with the 'user' role and a temporary password, AND saves the customer record to the database. The user can log in immediately — Keycloak will prompt for a password change on first login.\n\nRequired roles: admin or BankManager."
+          }
+        },
         {
           "name": "Get All Customers",
           "request": {
