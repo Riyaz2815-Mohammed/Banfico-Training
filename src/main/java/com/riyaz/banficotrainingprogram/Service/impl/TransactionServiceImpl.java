@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
 @Service
 public class TransactionServiceImpl implements TransactionService {
     private final TransactionsRepo transactionsRepo;
@@ -23,6 +24,7 @@ public class TransactionServiceImpl implements TransactionService {
         this.transactionsRepo = transactionsRepo;
         this.accountRepo = accountRepo;
     }
+
     @Override
     public TransactionResponse createTransaction(UUID id, TransactionRequest transaction) {
         Account account = accountRepo.findById(id)
@@ -36,17 +38,17 @@ public class TransactionServiceImpl implements TransactionService {
             account.setBalance(account.getBalance() - transaction.getAmount());
         }
         accountRepo.save(account);
-        Transactions transactions = new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account);
-        Transactions saved = transactionsRepo.save(transactions);
-        return new TransactionResponse(saved.getId(),saved.getType(),saved.getAccount().getId(),saved.getAccount().getBalance(),saved.getAmount(),saved.getTransactionTime());
+        Transactions savedTransaction = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account));
+        return new TransactionResponse(savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(), savedTransaction.getAccount().getBalance(), savedTransaction.getAmount(), savedTransaction.getTransactionTime(), savedTransaction.getDescription());
     }
 
     @Override
     public List<TransactionResponse> getTransactions(UUID id) {
         List<Transactions> transactions = transactionsRepo.findByAccountId(id);
         return transactions.stream().map(transaction -> new TransactionResponse(
-                transaction.getId(),transaction.getType(),transaction.getAccount().getId(),
-                transaction.getAccount().getBalance(),transaction.getAmount(),transaction.getTransactionTime()
+                transaction.getId(), transaction.getType(), transaction.getAccount().getId(),
+                transaction.getAccount().getBalance(), transaction.getAmount(),
+                transaction.getTransactionTime(), transaction.getDescription()
         )).toList();
     }
 }

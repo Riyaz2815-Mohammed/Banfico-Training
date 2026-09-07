@@ -22,6 +22,9 @@ public class Transactions {
     @Column(name = "transaction_time", nullable = false, updatable = false)
     private LocalDateTime transactionTime;
 
+    @Column(name = "description", length = 100)
+    private String description;
+
     @ManyToOne
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
@@ -34,6 +37,14 @@ public class Transactions {
         this.amount = amount;
         this.transactionTime = transactionTime;
         this.account = account;
+    }
+
+    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, String description) {
+        this.type = type;
+        this.amount = amount;
+        this.transactionTime = transactionTime;
+        this.account = account;
+        this.description = description;
     }
 
     public UUID getId() {
@@ -74,5 +85,13 @@ public class Transactions {
 
     public Account getAccount() {
         return account;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
