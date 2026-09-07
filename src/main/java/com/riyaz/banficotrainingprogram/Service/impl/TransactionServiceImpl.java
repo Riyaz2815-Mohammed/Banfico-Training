@@ -38,9 +38,9 @@ public class TransactionServiceImpl implements TransactionService {
             account.setBalance(account.getBalance() - transaction.getAmount());
         }
         accountRepo.save(account);
-        String description = transaction.getType().equalsIgnoreCase("CREDIT") ? "Credit" : "Debit";
-        Transactions savedTransaction = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, description));
-        return new TransactionResponse(savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(), savedTransaction.getAccount().getBalance(), savedTransaction.getAmount(), savedTransaction.getTransactionTime(), savedTransaction.getDescription());
+        String description = transaction.getType().equalsIgnoreCase("CREDIT") ? "Cash Deposit" : "Cash Withdrawal";
+        Transactions savedTransaction = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, description, account.getBalance()));
+        return new TransactionResponse(savedTransaction.getId(), savedTransaction.getType(), savedTransaction.getAccount().getId(), savedTransaction.getBalanceAfter(), savedTransaction.getAmount(), savedTransaction.getTransactionTime(), savedTransaction.getDescription());
     }
 
     @Override
@@ -48,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transactions> transactions = transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(id);
         return transactions.stream().map(transaction -> new TransactionResponse(
                 transaction.getId(), transaction.getType(), transaction.getAccount().getId(),
-                transaction.getAccount().getBalance(), transaction.getAmount(),
+                transaction.getBalanceAfter(), transaction.getAmount(),
                 transaction.getTransactionTime(), transaction.getDescription()
         )).toList();
     }

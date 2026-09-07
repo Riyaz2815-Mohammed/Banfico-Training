@@ -145,8 +145,8 @@ public class MeController {
         String creditDescription = "Transfer from " + senderName + " (" + fromAccount.getAccountNo() + ")";
 
         LocalDateTime now = LocalDateTime.now();
-        Transactions debitTransaction = transactionsRepo.save(new Transactions("DEBIT", transferRequest.getAmount(), now, fromAccount, debitDescription));
-        transactionsRepo.save(new Transactions("CREDIT", transferRequest.getAmount(), now, toAccount, creditDescription));
+        Transactions debitTransaction = transactionsRepo.save(new Transactions("DEBIT", transferRequest.getAmount(), now, fromAccount, debitDescription, fromAccount.getBalance()));
+        transactionsRepo.save(new Transactions("CREDIT", transferRequest.getAmount(), now, toAccount, creditDescription, toAccount.getBalance()));
 
         String note = transferRequest.getNote() != null ? transferRequest.getNote() : "";
         TransferResponse transferResponse = new TransferResponse(
