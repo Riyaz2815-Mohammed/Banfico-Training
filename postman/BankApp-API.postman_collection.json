@@ -10,9 +10,170 @@
     { "key": "token", "value": "" },
     { "key": "riyazCustomerId", "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567891" },
     { "key": "riyazSavingsAccountId", "value": "b1b2c3d4-e5f6-7890-abcd-ef1234567801" },
-    { "key": "riyazCurrentAccountId", "value": "b1b2c3d4-e5f6-7890-abcd-ef1234567802" }
+    { "key": "riyazCurrentAccountId", "value": "b1b2c3d4-e5f6-7890-abcd-ef1234567802" },
+    { "key": "demoAccountId", "value": "" },
+    { "key": "demoAccountNo", "value": "" },
+    { "key": "recipientAccountId", "value": "" },
+    { "key": "recipientAccountNo", "value": "" },
+    { "key": "demoBeneficiaryId", "value": "" },
+    { "key": "clientSecret", "value": "FILL_IN", "description": "Keycloak client secret for bankapp-frontend" },
+    { "key": "riyazPassword", "value": "FILL_IN" },
+    { "key": "priyaPassword", "value": "FILL_IN" },
+    { "key": "arjunPassword", "value": "FILL_IN" },
+    { "key": "snehaPassword", "value": "FILL_IN" },
+    { "key": "rahulPassword", "value": "FILL_IN" }
   ],
   "item": [
+    {
+      "name": "User Workflow (Demo)",
+      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money\n8. Confirm transfer appears in transactions",
+      "item": [
+        {
+          "name": "Step 1 — Login as Priya (user)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token', json.access_token);",
+            "console.log('Logged in as priya (user role)');"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
+              { "key": "username", "value": "priya" },
+              { "key": "password", "value": "{{priyaPassword}}" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Step 2 — View My Accounts",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.length > 0) {",
+            "  pm.collectionVariables.set('demoAccountId', json[0].id);",
+            "  pm.collectionVariables.set('demoAccountNo', json[0].accountNo);",
+            "  console.log('Saved account: ' + json[0].accountNo + ' (' + json[0].accountType + ') — balance ₹' + json[0].balance);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/me/accounts",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns only Priya's accounts. Notice: no other customers' accounts are visible."
+          }
+        },
+        {
+          "name": "Step 3 — View My Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts/{{demoAccountId}}/transactions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Shows transactions for Priya's first account. Each row has description (Cash Deposit / Cash Withdrawal / Transfer from Name) and a balance snapshot at time of transaction. Sorted newest first."
+          }
+        },
+        {
+          "name": "Step 4 — Lookup Recipient by Account Number",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.id) {",
+            "  pm.collectionVariables.set('recipientAccountId', json.id);",
+            "  pm.collectionVariables.set('recipientAccountNo', json.accountNo);",
+            "  console.log('Recipient: ' + json.accountHolderName + ' — ' + json.accountType + ' ' + json.accountNo);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/accounts/lookup?accountNo=SB001001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "accounts", "lookup"],
+              "query": [{ "key": "accountNo", "value": "SB001001" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Finds an account by its account number and returns the holder's name. Used to confirm you are sending to the right person before adding or transferring. Change accountNo to any other user's account."
+          }
+        },
+        {
+          "name": "Step 5 — Add as Beneficiary",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.id) {",
+            "  pm.collectionVariables.set('demoBeneficiaryId', json.id);",
+            "  console.log('Beneficiary saved: ' + json.accountHolderName + ' (' + json.nickname + ')');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{recipientAccountId}}\",\n  \"nickname\": \"Riyaz\"\n}"
+            },
+            "description": "Saves the looked-up account as a beneficiary with a nickname. recipientAccountId was auto-captured in Step 4."
+          }
+        },
+        {
+          "name": "Step 6 — View My Beneficiaries",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Confirms the beneficiary was added. Shows accountHolderName, accountNo and accountType."
+          }
+        },
+        {
+          "name": "Step 7 — Transfer Money",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.referenceId) {",
+            "  console.log('Transfer successful!');",
+            "  console.log('Reference: ' + json.referenceId.slice(0,8).toUpperCase());",
+            "  console.log('Remaining balance: ₹' + json.remainingBalance);",
+            "  console.log('Recipient: ' + json.recipientName + ' (' + json.recipientAccountNo + ')');",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/me/transfer",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 1000\n}"
+            },
+            "description": "Transfers ₹1000 from Priya's first account to the recipient found in Step 4. fromAccountId and recipientAccountNo are auto-filled from previous steps."
+          }
+        },
+        {
+          "name": "Step 8 — Confirm Transfer in Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/accounts/{{demoAccountId}}/transactions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "The latest transaction (top of the list) should show type DEBIT, description 'Transfer to Riyaz Ahmed', amount ₹1000, and the updated balance snapshot."
+          }
+        },
+        {
+          "name": "Step 9 — Remove Beneficiary (cleanup)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/me/beneficiaries/{{demoBeneficiaryId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Optional cleanup — removes the beneficiary added in Step 5. demoBeneficiaryId was auto-captured."
+          }
+        }
+      ]
+    },
     {
       "name": "Auth",
       "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. Regular users are scoped to their own data via /api/me/*.",
@@ -27,9 +188,9 @@
             "body": { "mode": "urlencoded", "urlencoded": [
               { "key": "grant_type", "value": "password" },
               { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "riyaz" },
-              { "key": "password", "value": "Riyaz@1234" },
+              { "key": "password", "value": "{{riyazPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
@@ -44,9 +205,9 @@
             "body": { "mode": "urlencoded", "urlencoded": [
               { "key": "grant_type", "value": "password" },
               { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "priya" },
-              { "key": "password", "value": "Priya@1234" },
+              { "key": "password", "value": "{{priyaPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
@@ -61,9 +222,9 @@
             "body": { "mode": "urlencoded", "urlencoded": [
               { "key": "grant_type", "value": "password" },
               { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "arjun" },
-              { "key": "password", "value": "Arjun@1234" },
+              { "key": "password", "value": "{{arjunPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
@@ -78,9 +239,9 @@
             "body": { "mode": "urlencoded", "urlencoded": [
               { "key": "grant_type", "value": "password" },
               { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "sneha" },
-              { "key": "password", "value": "Sneha@1234" },
+              { "key": "password", "value": "{{snehaPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
@@ -95,9 +256,9 @@
             "body": { "mode": "urlencoded", "urlencoded": [
               { "key": "grant_type", "value": "password" },
               { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "rahul" },
-              { "key": "password", "value": "Rahul@1234" },
+              { "key": "password", "value": "{{rahulPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
