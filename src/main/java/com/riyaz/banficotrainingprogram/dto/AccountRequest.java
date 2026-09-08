@@ -1,6 +1,7 @@
 package com.riyaz.banficotrainingprogram.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class AccountRequest {
         this.accountType = accountType;
     }
 
-    @NotBlank
+    @NotNull
     public UUID getCustomerId() {
         return customerId;
     }
@@ -39,7 +40,7 @@ public class AccountRequest {
         this.customerId = customerId;
     }
 
-    @NotBlank
+    @NotNull
     public Integer getBalance() {
         return balance;
     }
