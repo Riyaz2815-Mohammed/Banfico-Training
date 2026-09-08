@@ -32,7 +32,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (transaction.getType().equalsIgnoreCase("CREDIT")) {
             account.setBalance(account.getBalance() + transaction.getAmount());
         } else if (transaction.getType().equalsIgnoreCase("DEBIT")) {
-            if (account.getBalance() <= transaction.getAmount()) {
+            if (account.getBalance() < transaction.getAmount()) {
                 throw new InsufficientBalanceException("Insufficient balance: available " + account.getBalance() + ", requested " + transaction.getAmount());
             }
             account.setBalance(account.getBalance() - transaction.getAmount());
