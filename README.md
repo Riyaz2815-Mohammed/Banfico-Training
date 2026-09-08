@@ -1,187 +1,141 @@
-# Banfico Training Program
+# Banfico Training Program — Spring Boot Banking API
 
-## Project Overview
+A REST API backend for a banking system built with Spring Boot 4.1.0. Handles customers, accounts, transactions, beneficiaries, and fund transfers. Secured with Keycloak JWT authentication and role-based access control.
 
-This is a Spring Boot 4.1.0 application built with Java 17 that provides REST API endpoints for a Banking System, including customer management, account management, transactions, and beneficiaries.
+## Architecture
 
-## Current Task
+```
+Next.js (frontend)
+      |
+      |  Bearer JWT
+      v
+Spring Boot (this API) ──── PostgreSQL
+      |
+      |  Admin REST API
+      v
+Keycloak (identity provider)
+```
 
-Completed week 1. 
-Current task: Banking CRUD API.
+Spring Boot acts as an **OAuth2 resource server** — it never stores passwords. Every request must carry a valid Keycloak JWT. Spring verifies the token's signature using Keycloak's public key and extracts roles from it.
 
-## Database and Environment Configuration
+## Roles
 
-The application is connected to a PostgreSQL database hosted on Neon DB.
+| Role | Access |
+|---|---|
+| `user` | Own accounts, own transactions, own beneficiaries, transfers |
+| `BankManager` | All customers, all accounts, all transactions, register new users |
+| `admin` | Everything — including delete operations |
 
-### Environment Variables
+Roles are assigned in Keycloak and embedded in the JWT. The `KeycloakJwtConverter` maps them to Spring Security authorities (`ROLE_USER`, `ROLE_BANKMANAGER`, `ROLE_ADMIN`).
 
-To run the application, configure the following environment variables (e.g., in a `.env` file or your system environment):
+## Endpoints
 
-- DB_URL: The connection URL for the Neon DB database (e.g., jdbc:postgresql://...)
-- DB_USERNAME: The database username
-- DB_PASSWORD: The database password
+### Public / System
 
-## Entities
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/health` | Public | Returns `"UP"` |
+| GET | `/api/info` | Public | App version, git branch, commit ID |
 
-The system relies on the following core entities:
+### Registration
 
-1. Customer
-- Represents a bank customer.
-- Fields: id, name, email, phone, etc.
+| Method | URL | Access | Description |
+|---|---|---|---|
+| POST | `/api/register` | Admin, BankManager | Creates Keycloak user + Customer DB record |
 
-2. Account
-- Represents a customer's bank account.
-- Fields: id, accountNo, accountType, balance, customer (Many-to-One mapping).
-
-3. Transactions
-- Represents a financial transaction on an account.
-- Fields: id, amount, transactionType, timestamp, account (Many-to-One mapping).
-
-4. Beneficiary
-- Represents a beneficiary linked to a customer's account for easy transfers.
-- Fields: id, customer (Many-to-One mapping), beneficiaryAccount (Many-to-One mapping), nickname.
-
-## Implemented Endpoints and Responses
-
-### System Endpoints
-
-1. Health Endpoint
-- URL: `/api/health`
-- Method: GET
-- Purpose: Returns the health status of the application
-- Response: String "UP"
-- Status Code: 200 OK
-
-2. Info Endpoint
-- URL: `/api/info`
-- Method: GET
-- Purpose: Returns detailed application and git information
-- Response: JSON object containing application name, version, branch, commitId, and commitTime
-- Status Code: 200 OK
-
-### Customer Endpoints
-
-1. Create Customer
-- URL: `/api/customers`
-- Method: POST
-- Response: CustomerResponse object
-
-2. Get All Customers
-- URL: `/api/customers`
-- Method: GET
-- Response: List of CustomerResponse objects
-
-3. Get Customer by ID
-- URL: `/api/customers/{id}`
-- Method: GET
-- Response: CustomerResponse object
-
-4. Update Customer
-- URL: `/api/customers/{id}`
-- Method: PUT
-- Response: CustomerResponse object
-
-5. Delete Customer
-- URL: `/api/customers/{id}`
-- Method: DELETE
-- Response: String "Customer {id} has been Deleted"
-
-### Account Endpoints
-
-1. Create Account
-- URL: `/api/accounts`
-- Method: POST
-- Response: AccountResponse object
-
-2. Get All Accounts
-- URL: `/api/accounts`
-- Method: GET
-- Response: List of AccountResponse objects
-
-3. Get Account by ID
-- URL: `/api/accounts/{id}`
-- Method: GET
-- Response: AccountResponse object
-
-4. Update Account
-- URL: `/api/accounts/{id}`
-- Method: PUT
-- Response: AccountResponse object
-
-5. Delete Account
-- URL: `/api/accounts/{id}`
-- Method: DELETE
-- Response: String "Account {id} has been Deleted"
-
-### Transaction Endpoints
-
-1. Create Transaction
-- URL: `/api/accounts/{accountId}/transactions`
-- Method: POST
-- Response: TransactionResponse object
-
-2. Get Transactions for Account
-- URL: `/api/accounts/{accountId}/transactions`
-- Method: GET
-- Response: List of TransactionResponse objects
-
-### Beneficiary Endpoints
-
-1. Create Beneficiary
-- URL: `/api/customers/{customerId}/beneficiaries`
-- Method: POST
-- Response: BeneficiaryResponse object
-
-2. Get Beneficiaries for Customer
-- URL: `/api/customers/{customerId}/beneficiaries`
-- Method: GET
-- Response: List of BeneficiaryResponse objects
-
-3. Update Beneficiary Nickname
-- URL: `/api/customers/{customerId}/beneficiaries/{beneficiaryId}`
-- Method: PUT
-- Response: BeneficiaryResponse object
-
-4. Delete Beneficiary
-- URL: `/api/customers/{customerId}/beneficiaries/{beneficiaryId}`
-- Method: DELETE
-- Response: String "Beneficiary {beneficiaryId} has been Deleted"
-
-## Global Exception Handling
-
-All errors across the API return a consistent JSON response shape:
-
+**Request body:**
 ```json
 {
-  "status": 404,
-  "error": "Not Found",
-  "message": "Account not found with id: 3f2e...",
-  "timestamp": "2026-08-10T14:30:00"
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "pan": "ABCDE1234F",
+  "phoneNumber": "9876543210",
+  "username": "johndoe",
+  "temporaryPassword": "Pass@1234"
 }
 ```
 
-### How it works
+On success → Keycloak user created with `temporary: true` password (forces password change on first login) + Customer record saved in DB.
+If DB save fails → Keycloak user is automatically rolled back (deleted).
 
-When a service cannot find an entity or a request is invalid, it throws a custom exception instead of returning null. `GlobalExceptionHandler` (annotated with `@RestControllerAdvice`) intercepts every exception thrown from any controller and maps it to the right HTTP response automatically — no changes needed in the controllers.
+### Customers
 
-### Exception Types
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/customers` | Admin, BankManager | Get all customers |
+| GET | `/api/customers/{id}` | Admin, BankManager | Get customer by ID |
+| POST | `/api/customers` | Admin | Create customer (DB only) |
+| PUT | `/api/customers/{id}` | Admin | Update customer |
+| DELETE | `/api/customers/{id}` | Admin | Delete customer |
 
-| Exception | Thrown When | HTTP Status |
+### Accounts
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/accounts` | Admin, BankManager | Get all accounts |
+| GET | `/api/accounts/{id}` | Admin, BankManager | Get account by ID |
+| POST | `/api/accounts` | Admin | Create account |
+| PUT | `/api/accounts/{id}` | Admin | Update account |
+| DELETE | `/api/accounts/{id}` | Admin | Delete account |
+| GET | `/api/accounts/lookup/{accountNo}` | Authenticated | Look up account by account number |
+
+### Transactions
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/accounts/{accountId}/transactions` | Admin, BankManager | Get transactions for account |
+| POST | `/api/accounts/{accountId}/transactions` | Admin | Create transaction |
+
+### Beneficiaries
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/customers/{customerId}/beneficiaries` | Admin, BankManager | Get beneficiaries for customer |
+| POST | `/api/customers/{customerId}/beneficiaries` | Admin | Add beneficiary |
+| PUT | `/api/customers/{customerId}/beneficiaries/{id}` | Admin | Update nickname |
+| DELETE | `/api/customers/{customerId}/beneficiaries/{id}` | Admin | Remove beneficiary |
+
+### Fund Transfer
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| POST | `/api/transfer` | User | Transfer between accounts |
+
+### Me (Current User)
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/me/accounts` | User | Get own accounts |
+| GET | `/api/me/accounts/{accountId}/transactions` | User | Get transactions for own account |
+| GET | `/api/me/beneficiaries` | User | Get own beneficiaries |
+| POST | `/api/me/beneficiaries` | User | Add beneficiary to own list |
+| DELETE | `/api/me/beneficiaries/{id}` | User | Remove own beneficiary |
+
+## Global Exception Handling
+
+All errors return a consistent JSON shape:
+
+```json
+{
+  "status": 400,
+  "error": "Invalid Data",
+  "message": "A customer with this email or PAN already exists.",
+  "timestamp": "2026-09-08T10:00:00"
+}
+```
+
+`GlobalExceptionHandler` (`@RestControllerAdvice`) intercepts every exception thrown from any controller.
+
+| Exception | Cause | HTTP Status |
 |---|---|---|
-| `ResourceNotFoundException` | Entity not found in DB | 404 Not Found |
-| `InsufficientBalanceException` | DEBIT amount exceeds account balance | 400 Bad Request |
-| `MethodArgumentNotValidException` | `@Valid` check fails on request body | 400 Bad Request |
-| `Exception` (catch-all) | Any other unexpected error | 500 Internal Server Error |
-
-### Flow
-
-```
-Request → Controller → Service → throws Exception
-                                        ↓
-                          GlobalExceptionHandler catches it
-                                        ↓
-                          Returns ErrorResponse JSON to client
-```
+| `ResourceNotFoundException` | Entity not found in DB | 404 |
+| `InsufficientBalanceException` | DEBIT exceeds account balance | 400 |
+| `MethodArgumentNotValidException` | `@Valid` check fails on request body | 400 |
+| `DataIntegrityViolationException` | Duplicate PAN / email, or value too long | 400 |
+| `HttpClientErrorException` (409) | Username or email already exists in Keycloak | 409 |
+| `RestClientException` | Cannot reach Keycloak | 502 |
+| `Exception` | Any other unexpected error | 500 |
 
 ## Project Structure
 
@@ -189,89 +143,115 @@ Request → Controller → Service → throws Exception
 src/main/java/com/riyaz/banficotrainingprogram/
 ├── BanficoTrainingProgramApplication.java
 ├── Controller/
-│   ├── AccountController.java
-│   ├── BeneficiaryController.java
 │   ├── CustomerController.java
-│   ├── SystemController.java
-│   └── TransactionController.java
-├── Entity/
-│   ├── Account.java
-│   ├── Beneficiary.java
-│   ├── Customer.java
-│   └── Transactions.java
+│   ├── AccountController.java
+│   ├── TransactionController.java
+│   ├── BeneficiaryController.java
+│   ├── MeController.java           — current-user endpoints
+│   ├── RegistrationController.java — Keycloak + DB user registration
+│   └── SystemController.java       — health, info
 ├── Service/
+│   ├── CustomerService.java        — interface
 │   ├── AccountService.java
-│   ├── BeneficiaryService.java
-│   ├── CustomerService.java
-│   ├── SystemService.java
 │   ├── TransactionService.java
-│   └── impl/
-│       ├── AccountServiceImpl.java
-│       ├── BeneficiaryServiceImpl.java
+│   ├── BeneficiaryService.java
+│   ├── SystemService.java
+│   ├── KeycloakAdminService.java   — Keycloak Admin REST API calls
+│   └── impl/                       — interface implementations
 │       ├── CustomerServiceImpl.java
-│       ├── SystemServiceImpl.java
-│       └── TransactionServiceImpl.java
+│       ├── AccountServiceImpl.java
+│       ├── TransactionServiceImpl.java
+│       ├── BeneficiaryServiceImpl.java
+│       └── SystemServiceImpl.java
+├── Entity/
+│   ├── Customer.java
+│   ├── Account.java
+│   ├── Transactions.java
+│   └── Beneficiary.java
 ├── dto/
-│   ├── AccountRequest.java
-│   ├── AccountResponse.java
-│   ├── BeneficiaryRequest.java
-│   ├── BeneficiaryResponse.java
+│   ├── CustomerRequest.java / CustomerResponse.java
+│   ├── AccountRequest.java / AccountResponse.java
+│   ├── AccountLookupResponse.java
+│   ├── TransactionRequest.java / TransactionResponse.java
+│   ├── BeneficiaryRequest.java / BeneficiaryResponse.java
+│   ├── TransferRequest.java / TransferResponse.java
+│   ├── RegisterRequest.java        — with @Valid constraints
+│   ├── RegisterResponse.java
 │   ├── ErrorResponse.java
 │   ├── Healthresponse.java
-│   ├── InfoResponse.java
-│   ├── TransactionRequest.java
-│   └── TransactionResponse.java
+│   └── InfoResponse.java
+├── security/
+│   ├── SecurityConfig.java         — endpoint access rules per role
+│   └── KeycloakJwtConverter.java   — extracts roles from JWT
 ├── exception/
 │   ├── GlobalExceptionHandler.java
-│   ├── InsufficientBalanceException.java
-│   └── ResourceNotFoundException.java
+│   ├── ResourceNotFoundException.java
+│   └── InsufficientBalanceException.java
 ├── metadata/
 │   └── GitInfoProvider.java
 └── repository/
-    ├── AccountRepo.java
-    ├── BeneficiaryRepo.java
     ├── CustomerRepo.java
-    └── TransactionsRepo.java
+    ├── AccountRepo.java
+    ├── TransactionsRepo.java
+    └── BeneficiaryRepo.java
 ```
+
+## How Layers Work
+
+```
+Request → Controller → Service (interface) → ServiceImpl → Repository → DB
+                          ↑
+                     Business logic,
+                     Entity ↔ DTO mapping,
+                     exception throwing
+```
+
+- **Controller** — receives HTTP request, calls service, returns `ResponseEntity`
+- **Service interface** — defines the contract (what operations exist)
+- **ServiceImpl** — implements business rules (validation, balance checks, mapping)
+- **Repository** — extends `JpaRepository`; Spring generates all SQL automatically
+- **Entity** — maps to DB table via Hibernate; never sent directly to the client
+- **DTO** — plain classes for request input and response output; carries `@Valid` constraints
 
 ## Technology Stack
 
 - Java 17
 - Spring Boot 4.1.0
 - Spring Web MVC
-- Spring Data JPA
-- PostgreSQL (Neon DB)
+- Spring Data JPA / Hibernate
+- Spring Security — OAuth2 Resource Server
+- Keycloak — Identity and access management
+- PostgreSQL (Neon DB in prod, Docker in dev)
 - Maven
-- Git Commit ID Maven Plugin (for automatic version tracking)
+- Docker / Docker Compose
 
-## Building and Running
+## Environment Variables
 
-### Build the Project
+| Variable | Description |
+|---|---|
+| `DB_URL` | JDBC connection URL (`jdbc:postgresql://...`) |
+| `DB_USERNAME` | Database username |
+| `DB_PASSWORD` | Database password |
+| `KEYCLOAK_ISSUER_URI` | Keycloak realm URL (`http://keycloak:8080/realms/bankapp`) |
+| `KEYCLOAK_ADMIN_URL` | Keycloak base URL for Admin API |
+| `KEYCLOAK_ADMIN_USERNAME` | Master realm admin username |
+| `KEYCLOAK_ADMIN_PASSWORD` | Master realm admin password |
+
+## Running with Docker
+
 ```bash
-mvn clean package
+# Start all services (Keycloak, PostgreSQL, Spring Boot, Next.js)
+docker compose up --build -d
+
+# Rebuild Spring Boot only after code changes
+docker compose up --build -d app
 ```
 
-### Run the Application
-```bash
-mvn spring-boot:run
-(or)
-java -jar target/Banfico-Training-program-0.0.1-SNAPSHOT.jar
-```
-
-The application starts on port 8080 by default.
-
-## Dependencies
-
-- spring-boot-starter-webmvc - Web MVC framework
-- spring-boot-starter-data-jpa - JPA data access
-- postgresql - PostgreSQL database driver
-- spring-boot-starter-validation - Request validation
-- spring-boot-starter-test - Testing framework
-- git-commit-id-maven-plugin - Git metadata capture
-
-## Version
-
-Current Version: 0.0.1-SNAPSHOT
+Services:
+- Spring Boot API: `http://localhost:8081`
+- Keycloak: `http://localhost:8180`
+- PostgreSQL: `localhost:5432`
 
 ## Author
- Riyaz
+
+Riyaz
