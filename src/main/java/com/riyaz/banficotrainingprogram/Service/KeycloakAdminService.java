@@ -1,7 +1,6 @@
 package com.riyaz.banficotrainingprogram.Service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -27,11 +26,7 @@ public class KeycloakAdminService {
     @Value("${keycloak.admin.realm}")
     private String realm;
 
-    private final RestTemplate restTemplate;
-
-    public KeycloakAdminService(RestTemplateBuilder builder) {
-        this.restTemplate = builder.build();
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public String createUser(String username, String email, String firstName, String lastName, String temporaryPassword) {
         String token = getAdminToken();
