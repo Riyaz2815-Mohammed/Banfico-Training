@@ -175,9 +175,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fromAccountId\": \"{{riyazSavingsAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 5000,\n  \"note\": \"Rent for June\"\n}"
+              "raw": "{\n  \"fromAccountId\": \"{{riyazSavingsAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 5000\n}"
             },
-            "description": "Transfers money between two accounts atomically. Debits fromAccountId and credits recipientAccountNo. Both accounts get a transaction record with a description. Returns referenceId, remainingBalance and timestamp.\n\nErrors:\n- 403 if fromAccountId does not belong to the logged-in user\n- 400 if sender tries to transfer to their own account\n- 422/500 if balance is insufficient (InsufficientBalanceException)"
+            "description": "Transfers money between two accounts atomically. Debits fromAccountId and credits recipientAccountNo. Both accounts get a transaction record — sender sees 'Transfer to Name', recipient sees 'Transfer from Name'. Returns referenceId, remainingBalance and timestamp.\n\nErrors:\n- 403 if fromAccountId does not belong to the logged-in user\n- 400 if sender tries to transfer to their own account\n- 500 if balance is insufficient (InsufficientBalanceException)"
           }
         }
       ]
@@ -318,7 +318,7 @@
     },
     {
       "name": "Transactions",
-      "description": "Transactions now include a description field. Transfers via /api/me/transfer auto-populate descriptions like 'Transfer to Priya Kumar (SB002001)'.",
+      "description": "Each transaction includes a description and a balance_after snapshot (balance at the time of the transaction). Manual transactions use 'Cash Deposit' or 'Cash Withdrawal'. Transfers use 'Transfer to Name' (sender) or 'Transfer from Name' (recipient). Results are sorted newest first.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
