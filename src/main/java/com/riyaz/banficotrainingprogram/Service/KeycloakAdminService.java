@@ -80,6 +80,18 @@ public class KeycloakAdminService {
         return userId;
     }
 
+    public void deleteUser(String userId) {
+        String token = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        restTemplate.exchange(
+                adminUrl + "/admin/realms/" + realm + "/users/" + userId,
+                HttpMethod.DELETE,
+                new HttpEntity<>(headers),
+                Void.class
+        );
+    }
+
     @SuppressWarnings("unchecked")
     private String getAdminToken() {
         HttpHeaders headers = new HttpHeaders();
