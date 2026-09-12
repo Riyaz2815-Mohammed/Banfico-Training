@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/customers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/accounts/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/register").hasAnyRole("ADMIN", "BANKMANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/transactions").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
