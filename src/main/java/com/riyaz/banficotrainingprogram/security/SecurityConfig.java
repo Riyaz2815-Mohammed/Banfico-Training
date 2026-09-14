@@ -12,14 +12,17 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
     private final KeycloakJwtConverter keycloakJwtConverter;
+
     public SecurityConfig(KeycloakJwtConverter keycloakJwtConverter) {
         this.keycloakJwtConverter = keycloakJwtConverter;
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -31,6 +34,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -39,9 +43,13 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/health", "/api/info").permitAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/customers/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/accounts/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/register").hasAnyRole("ADMIN", "BANKMANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/accounts").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/accounts/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/accounts/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/customers").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/customers/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/customers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/transactions").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
