@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.Service;
 
+import com.riyaz.banficotrainingprogram.dto.AccountLookupResponse;
 import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
 
@@ -9,7 +10,9 @@ import java.util.UUID;
 public interface AccountService {
     AccountResponse createAccount(AccountRequest accountRequest);
     List<AccountResponse> getAccounts();
+    List<AccountResponse> getMyAccounts(String email);
     AccountResponse getAccount(UUID accountId);
-    AccountResponse updateAccount(UUID id,AccountRequest accountRequest);
+    AccountResponse updateAccount(UUID id, AccountRequest accountRequest);
     void deleteAccount(UUID accountId);
+    AccountLookupResponse lookupByAccountNo(String accountNo);
 }
