@@ -7,8 +7,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface BeneficiaryService {
-    BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest beneficiaryRequest);
     List<BeneficiaryResponse> getBeneficiaries(UUID customerId);
-    BeneficiaryResponse updateBeneficiaryNickname(UUID customerId, UUID beneficiaryId, BeneficiaryRequest beneficiaryRequest);
-    void deleteBeneficiary(UUID customerId, UUID beneficiaryId);
+    List<BeneficiaryResponse> getMyBeneficiaries(String email);
+    BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest request);
+    BeneficiaryResponse addMyBeneficiary(String email, BeneficiaryRequest request);
+    BeneficiaryResponse updateBeneficiaryNickname(UUID beneficiaryId, BeneficiaryRequest request);
+    void deleteBeneficiary(UUID beneficiaryId);
+    void removeMyBeneficiary(String email, UUID beneficiaryId);
 }

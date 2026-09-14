@@ -27,42 +27,53 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
         this.accountRepo = accountRepo;
     }
 
-    @Override
-    public BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest beneficiaryRequest) {
-        Customer customer = customerRepo.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
-        Account account = accountRepo.findById(beneficiaryRequest.getAccountId())
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + beneficiaryRequest.getAccountId()));
-        Beneficiary beneficiary = new Beneficiary(customer, account, beneficiaryRequest.getNickname());
-        Beneficiary savedBeneficiary = beneficiaryRepo.save(beneficiary);
-        String accountHolderName = savedBeneficiary.getBeneficiaryAccount().getCustomer().getFirstName() + " " + savedBeneficiary.getBeneficiaryAccount().getCustomer().getLastName();
-        return new BeneficiaryResponse(savedBeneficiary.getId(), savedBeneficiary.getCustomer().getId(), savedBeneficiary.getBeneficiaryAccount().getId(), savedBeneficiary.getBeneficiaryAccount().getAccountNo(), savedBeneficiary.getBeneficiaryAccount().getAccountType(), accountHolderName, savedBeneficiary.getNickname());
+    private BeneficiaryResponse toResponse(Beneficiary b) {
+        return new BeneficiaryResponse(b.getId(), b.getCustomer().getId(), b.getBeneficiaryAccount().getId(), b.getBeneficiaryAccount().getAccountNo(), b.getBeneficiaryAccount().getAccountType(), b.getBeneficiaryAccount().getCustomer().getFirstName() + " " + b.getBeneficiaryAccount().getCustomer().getLastName(), b.getNickname());
     }
 
     @Override
     public List<BeneficiaryResponse> getBeneficiaries(UUID customerId) {
-        List<Beneficiary> beneficiaries = beneficiaryRepo.findByCustomerId(customerId);
-        return beneficiaries.stream().map(beneficiary -> {
-            String accountHolderName = beneficiary.getBeneficiaryAccount().getCustomer().getFirstName() + " " + beneficiary.getBeneficiaryAccount().getCustomer().getLastName();
-            return new BeneficiaryResponse(
-                    beneficiary.getId(), beneficiary.getCustomer().getId(),
-                    beneficiary.getBeneficiaryAccount().getId(), beneficiary.getBeneficiaryAccount().getAccountNo(),
-                    beneficiary.getBeneficiaryAccount().getAccountType(), accountHolderName, beneficiary.getNickname());
-        }).toList();
+        return beneficiaryRepo.findByCustomerId(customerId).stream().map(this::toResponse).toList();
     }
 
     @Override
-    public BeneficiaryResponse updateBeneficiaryNickname(UUID customerId, UUID beneficiaryId, BeneficiaryRequest beneficiaryRequest) {
-        Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
-        beneficiary.setNickname(beneficiaryRequest.getNickname());
-        Beneficiary updatedBeneficiary = beneficiaryRepo.save(beneficiary);
-        String accountHolderName = updatedBeneficiary.getBeneficiaryAccount().getCustomer().getFirstName() + " " + updatedBeneficiary.getBeneficiaryAccount().getCustomer().getLastName();
-        return new BeneficiaryResponse(updatedBeneficiary.getId(), updatedBeneficiary.getCustomer().getId(), updatedBeneficiary.getBeneficiaryAccount().getId(), updatedBeneficiary.getBeneficiaryAccount().getAccountNo(), updatedBeneficiary.getBeneficiaryAccount().getAccountType(), accountHolderName, updatedBeneficiary.getNickname());
+    public List<BeneficiaryResponse> getMyBeneficiaries(String email) {
+        Customer customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        return beneficiaryRepo.findByCustomerId(customer.getId()).stream().map(this::toResponse).toList();
     }
 
     @Override
-    public void deleteBeneficiary(UUID customerId, UUID beneficiaryId) {
+    public BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest request) {
+        Customer customer = customerRepo.findById(customerId).orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+        Account account = accountRepo.findById(request.getAccountId()).orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + request.getAccountId()));
+        return toResponse(beneficiaryRepo.save(new Beneficiary(customer, account, request.getNickname())));
+    }
+
+    @Override
+    public BeneficiaryResponse addMyBeneficiary(String email, BeneficiaryRequest request) {
+        Customer customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        Account account = accountRepo.findById(request.getAccountId()).orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + request.getAccountId()));
+        return toResponse(beneficiaryRepo.save(new Beneficiary(customer, account, request.getNickname())));
+    }
+
+    @Override
+    public BeneficiaryResponse updateBeneficiaryNickname(UUID beneficiaryId, BeneficiaryRequest request) {
+        Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId).orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
+        beneficiary.setNickname(request.getNickname());
+        return toResponse(beneficiaryRepo.save(beneficiary));
+    }
+
+    @Override
+    public void deleteBeneficiary(UUID beneficiaryId) {
+        beneficiaryRepo.findById(beneficiaryId).orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
+        beneficiaryRepo.deleteById(beneficiaryId);
+    }
+
+    @Override
+    public void removeMyBeneficiary(String email, UUID beneficiaryId) {
+        Customer customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        Beneficiary beneficiary = beneficiaryRepo.findById(beneficiaryId).orElseThrow(() -> new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId));
+        if (!beneficiary.getCustomer().getId().equals(customer.getId())) throw new ResourceNotFoundException("Beneficiary not found with id: " + beneficiaryId);
         beneficiaryRepo.deleteById(beneficiaryId);
     }
 }
