@@ -4,63 +4,58 @@ import com.riyaz.banficotrainingprogram.Service.AccountService;
 import com.riyaz.banficotrainingprogram.dto.AccountLookupResponse;
 import com.riyaz.banficotrainingprogram.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.dto.AccountResponse;
-import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
-import com.riyaz.banficotrainingprogram.repository.AccountRepo;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
     private final AccountService accountService;
-    private final AccountRepo accountRepo;
 
-    public AccountController(AccountService accountService, AccountRepo accountRepo) {
+    public AccountController(AccountService accountService) {
         this.accountService = accountService;
-        this.accountRepo = accountRepo;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<AccountResponse>> getAccounts(@AuthenticationPrincipal Jwt jwt) {
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+        List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
+        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
+        if (isStaff) return ResponseEntity.ok(accountService.getAccounts());
+        return ResponseEntity.ok(accountService.getMyAccounts(jwt.getClaimAsString("email")));
     }
 
     @GetMapping("/lookup")
     public ResponseEntity<AccountLookupResponse> lookupByAccountNo(@RequestParam String accountNo) {
-        return accountRepo.findByAccountNo(accountNo)
-                .map(a -> {
-                    String holderName = a.getCustomer().getFirstName() + " " + a.getCustomer().getLastName();
-                    return ResponseEntity.ok(new AccountLookupResponse(a.getId(), a.getAccountNo(), a.getAccountType(), holderName));
-                })
-                .orElseThrow(() -> new ResourceNotFoundException("No account found with number: " + accountNo));
-    }
-    @PostMapping
-    public ResponseEntity<AccountResponse> createaccount(@Valid @RequestBody AccountRequest account) {
-        AccountResponse accountResponse = accountService.createAccount(account);
-        return  ResponseEntity.status(HttpStatus.CREATED).body(accountResponse);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<AccountResponse>> getAllAccounts() {
-        List<AccountResponse> accountResponses = accountService.getAccounts();
-        return ResponseEntity.ok(accountResponses);
+        return ResponseEntity.ok(accountService.lookupByAccountNo(accountNo));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID id) {
-        AccountResponse accountResponse = accountService.getAccount(id);
-        return ResponseEntity.ok(accountResponse);
+        return ResponseEntity.ok(accountService.getAccount(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody AccountRequest account) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.createAccount(account));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AccountResponse> updateAccount(@PathVariable UUID id ,@Valid @RequestBody AccountRequest account) {
-        AccountResponse accountResponse= accountService.updateAccount(id, account);
-        return ResponseEntity.ok(accountResponse);
+    public ResponseEntity<AccountResponse> updateAccount(@PathVariable UUID id, @Valid @RequestBody AccountRequest account) {
+        return ResponseEntity.ok(accountService.updateAccount(id, account));
     }
 
     @DeleteMapping("/{id}")
-    public String deleteAccount(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteAccount(@PathVariable UUID id) {
         accountService.deleteAccount(id);
-        return "Account "+ " "+id+ "has been Deleted";
+        return ResponseEntity.noContent().build();
     }
 }
