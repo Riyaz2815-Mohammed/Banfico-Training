@@ -1,6 +1,6 @@
 package com.riyaz.banficotrainingprogram.exception;
 
-import com.riyaz.banficotrainingprogram.dto.ErrorResponse;
+import com.riyaz.banficotrainingprogram.exception.ErrorResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
