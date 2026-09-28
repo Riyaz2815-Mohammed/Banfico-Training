@@ -10,16 +10,14 @@ public class TransactionResponse {
     private Integer amount;
     private Integer balance;
     private LocalDateTime timestamp;
-    private String description;
 
-    public TransactionResponse(UUID id, String accountType, UUID customer_id, Integer balance, Integer amount, LocalDateTime timestamp, String description) {
+    public TransactionResponse(UUID id, String accountType, UUID customer_id, Integer balance, Integer amount, LocalDateTime timestamp) {
         this.id = id;
         this.accountType = accountType;
         this.customer_id = customer_id;
         this.balance = balance;
         this.amount = amount;
         this.timestamp = timestamp;
-        this.description = description;
     }
 
     public UUID getId() { return id; }
@@ -28,5 +26,4 @@ public class TransactionResponse {
     public Integer getAmount() { return amount; }
     public Integer getBalance() { return balance; }
     public LocalDateTime getTimestamp() { return timestamp; }
-    public String getDescription() { return description; }
 }
