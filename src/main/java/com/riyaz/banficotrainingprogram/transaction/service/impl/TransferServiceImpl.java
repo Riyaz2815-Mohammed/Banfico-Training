@@ -41,11 +41,10 @@ public class TransferServiceImpl implements TransferService {
         accountRepo.save(fromAccount);
         toAccount.setBalance(toAccount.getBalance() + request.getAmount());
         accountRepo.save(toAccount);
-        String senderName = sender.getFirstName() + " " + sender.getLastName();
         String recipientName = toAccount.getCustomer().getFirstName() + " " + toAccount.getCustomer().getLastName();
         LocalDateTime now = LocalDateTime.now();
-        Transactions debitTx = transactionsRepo.save(new Transactions("DEBIT", request.getAmount(), now, fromAccount, "Transfer to " + recipientName, fromAccount.getBalance()));
-        transactionsRepo.save(new Transactions("CREDIT", request.getAmount(), now, toAccount, "Transfer from " + senderName, toAccount.getBalance()));
+        Transactions debitTx = transactionsRepo.save(new Transactions("DEBIT", request.getAmount(), now, fromAccount, fromAccount.getBalance()));
+        transactionsRepo.save(new Transactions("CREDIT", request.getAmount(), now, toAccount, toAccount.getBalance()));
         String note = request.getNote() != null ? request.getNote() : "";
         return new TransferResponse(debitTx.getId(), fromAccount.getAccountNo(), fromAccount.getBalance(), recipientName, toAccount.getAccountNo(), request.getAmount(), note, now);
     }
