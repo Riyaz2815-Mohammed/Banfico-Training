@@ -139,61 +139,60 @@ All errors return a consistent JSON shape:
 
 ## Project Structure
 
+The project is organised as a **modular monolith** — each domain owns its full vertical slice (controller → service → repository → entity → dto) inside its own package. Shared concerns (`exception`, `security`) live at the top level.
+
 ```
 src/main/java/com/riyaz/banficotrainingprogram/
 ├── BanficoTrainingProgramApplication.java
-├── Controller/
-│   ├── CustomerController.java
-│   ├── AccountController.java
-│   ├── TransactionController.java
-│   ├── BeneficiaryController.java
-│   ├── MeController.java           — current-user endpoints
-│   ├── RegistrationController.java — Keycloak + DB user registration
-│   └── SystemController.java       — health, info
-├── Service/
-│   ├── CustomerService.java        — interface
-│   ├── AccountService.java
-│   ├── TransactionService.java
-│   ├── BeneficiaryService.java
-│   ├── SystemService.java
-│   ├── KeycloakAdminService.java   — Keycloak Admin REST API calls
-│   └── impl/                       — interface implementations
-│       ├── CustomerServiceImpl.java
-│       ├── AccountServiceImpl.java
-│       ├── TransactionServiceImpl.java
-│       ├── BeneficiaryServiceImpl.java
-│       └── SystemServiceImpl.java
-├── Entity/
-│   ├── Customer.java
-│   ├── Account.java
-│   ├── Transactions.java
-│   └── Beneficiary.java
-├── dto/
-│   ├── CustomerRequest.java / CustomerResponse.java
-│   ├── AccountRequest.java / AccountResponse.java
-│   ├── AccountLookupResponse.java
-│   ├── TransactionRequest.java / TransactionResponse.java
-│   ├── BeneficiaryRequest.java / BeneficiaryResponse.java
-│   ├── TransferRequest.java / TransferResponse.java
-│   ├── RegisterRequest.java        — with @Valid constraints
-│   ├── RegisterResponse.java
-│   ├── ErrorResponse.java
-│   ├── Healthresponse.java
-│   └── InfoResponse.java
-├── security/
-│   ├── SecurityConfig.java         — endpoint access rules per role
-│   └── KeycloakJwtConverter.java   — extracts roles from JWT
+│
+├── customer/
+│   ├── controller/   CustomerController.java, RegistrationController.java
+│   ├── dto/          CustomerRequest/Response, RegisterRequest/Response
+│   ├── entity/       Customer.java
+│   ├── repository/   CustomerRepo.java
+│   └── service/      CustomerService.java, KeycloakAdminService.java
+│       └── impl/     CustomerServiceImpl.java
+│
+├── account/
+│   ├── controller/   AccountController.java
+│   ├── dto/          AccountRequest/Response, AccountLookupResponse
+│   ├── entity/       Account.java
+│   ├── repository/   AccountRepo.java
+│   └── service/      AccountService.java
+│       └── impl/     AccountServiceImpl.java
+│
+├── beneficiary/
+│   ├── controller/   BeneficiaryController.java
+│   ├── dto/          BeneficiaryRequest/Response
+│   ├── entity/       Beneficiary.java
+│   ├── repository/   BeneficiaryRepo.java
+│   └── service/      BeneficiaryService.java
+│       └── impl/     BeneficiaryServiceImpl.java
+│
+├── transaction/
+│   ├── controller/   TransactionController.java, TransferController.java
+│   ├── dto/          TransactionRequest/Response, TransferRequest/Response
+│   ├── entity/       Transactions.java
+│   ├── repository/   TransactionsRepo.java
+│   └── service/      TransactionService.java, TransferService.java
+│       └── impl/     TransactionServiceImpl.java, TransferServiceImpl.java
+│
+├── system/
+│   ├── controller/   SystemController.java
+│   ├── dto/          HealthResponse.java, InfoResponse.java
+│   ├── metadata/     GitInfoProvider.java
+│   └── service/      SystemService.java
+│       └── impl/     SystemServiceImpl.java
+│
 ├── exception/
 │   ├── GlobalExceptionHandler.java
+│   ├── ErrorResponse.java
 │   ├── ResourceNotFoundException.java
 │   └── InsufficientBalanceException.java
-├── metadata/
-│   └── GitInfoProvider.java
-└── repository/
-    ├── CustomerRepo.java
-    ├── AccountRepo.java
-    ├── TransactionsRepo.java
-    └── BeneficiaryRepo.java
+│
+└── security/
+    ├── SecurityConfig.java         — endpoint access rules per role
+    └── KeycloakJwtConverter.java   — extracts Keycloak roles from JWT
 ```
 
 ## How Layers Work
