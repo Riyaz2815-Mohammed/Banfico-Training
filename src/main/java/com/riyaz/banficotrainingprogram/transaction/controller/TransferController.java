@@ -11,7 +11,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/transfer")
+@RequestMapping("/api/v1/transfer")
 public class TransferController {
     private final TransferService transferService;
 

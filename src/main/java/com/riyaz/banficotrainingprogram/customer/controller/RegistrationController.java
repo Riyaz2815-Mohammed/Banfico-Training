@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 public class RegistrationController {
     private final CustomerService customerService;
     private final KeycloakAdminService keycloakAdminService;

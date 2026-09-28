@@ -34,14 +34,14 @@ Roles are assigned in Keycloak and embedded in the JWT. The `KeycloakJwtConverte
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| GET | `/api/health` | Public | Returns `"UP"` |
-| GET | `/api/info` | Public | App version, git branch, commit ID |
+| GET | `/api/v1/health` | Public | Returns `"UP"` |
+| GET | `/api/v1/info` | Public | App version, git branch, commit ID |
 
 ### Registration
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| POST | `/api/register` | Admin, BankManager | Creates Keycloak user + Customer DB record |
+| POST | `/api/v1/register` | Admin, BankManager | Creates Keycloak user + Customer DB record |
 
 **Request body:**
 ```json
@@ -63,11 +63,11 @@ If DB save fails → Keycloak user is automatically rolled back (deleted).
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| GET | `/api/customers` | Admin, BankManager | Get all customers |
-| GET | `/api/customers/{id}` | Admin, BankManager | Get customer by ID |
-| POST | `/api/customers` | Admin | Create customer (DB only) |
-| PUT | `/api/customers/{id}` | Admin | Update customer |
-| DELETE | `/api/customers/{id}` | Admin | Delete customer |
+| GET | `/api/v1/customers` | Admin, BankManager | Get all customers |
+| GET | `/api/v1/customers/{id}` | Admin, BankManager | Get customer by ID |
+| POST | `/api/v1/customers` | Admin | Create customer (DB only) |
+| PUT | `/api/v1/customers/{id}` | Admin | Update customer |
+| DELETE | `/api/v1/customers/{id}` | Admin | Delete customer |
 
 ### Accounts
 
@@ -75,34 +75,34 @@ All account endpoints are unified — the response is filtered by the caller's r
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
-| GET | `/api/accounts/{id}` | Authenticated | Returns the account by ID |
-| GET | `/api/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
-| POST | `/api/accounts` | Admin | Create account |
-| PUT | `/api/accounts/{id}` | Admin | Update account |
-| DELETE | `/api/accounts/{id}` | Admin | Delete account |
+| GET | `/api/v1/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
+| GET | `/api/v1/accounts/{id}` | Authenticated | Returns the account by ID |
+| GET | `/api/v1/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
+| POST | `/api/v1/accounts` | Admin | Create account |
+| PUT | `/api/v1/accounts/{id}` | Admin | Update account |
+| DELETE | `/api/v1/accounts/{id}` | Admin | Delete account |
 
 ### Transactions
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only (ownership enforced) |
-| POST | `/api/transactions` | Admin | Create a CREDIT or DEBIT transaction |
+| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only (ownership enforced) |
+| POST | `/api/v1/transactions` | Admin | Create a CREDIT or DEBIT transaction |
 
 ### Beneficiaries
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/beneficiaries` | Authenticated | Staff + `?customerId=` → specific customer; User → own list |
-| POST | `/api/beneficiaries` | Authenticated | Staff + `?customerId=` → add for customer; User → add to own list |
-| PUT | `/api/beneficiaries/{id}` | Authenticated | Update nickname |
-| DELETE | `/api/beneficiaries/{id}` | Authenticated | Staff → any; User → own beneficiaries only |
+| GET | `/api/v1/beneficiaries` | Authenticated | Staff + `?customerId=` → specific customer; User → own list |
+| POST | `/api/v1/beneficiaries` | Authenticated | Staff + `?customerId=` → add for customer; User → add to own list |
+| PUT | `/api/v1/beneficiaries/{id}` | Authenticated | Update nickname |
+| DELETE | `/api/v1/beneficiaries/{id}` | Authenticated | Staff → any; User → own beneficiaries only |
 
 ### Fund Transfer
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| POST | `/api/transfer` | Authenticated | Transfer funds between accounts (sender resolved from JWT) |
+| POST | `/api/v1/transfer` | Authenticated | Transfer funds between accounts (sender resolved from JWT) |
 
 ## Global Exception Handling
 
