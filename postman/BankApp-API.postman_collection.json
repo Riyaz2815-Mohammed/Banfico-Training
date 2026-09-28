@@ -29,7 +29,7 @@
   "item": [
     {
       "name": "User Workflow (Demo)",
-      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money\n8. Confirm transfer appears in transactions",
+      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts (RBAC — same endpoint as admin but filtered by JWT)\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money\n8. Confirm transfer appears in transactions\n9. Remove beneficiary (cleanup)",
       "item": [
         {
           "name": "Step 1 — Login as Priya (user)",
@@ -59,23 +59,28 @@
             "if (json.length > 0) {",
             "  pm.collectionVariables.set('demoAccountId', json[0].id);",
             "  pm.collectionVariables.set('demoAccountNo', json[0].accountNo);",
-            "  console.log('Saved account: ' + json[0].accountNo + ' (' + json[0].accountType + ') — balance ₹' + json[0].balance);",
+            "  console.log('Saved account: ' + json[0].accountNo + ' (' + json[0].accountType + ') — balance Rs.' + json[0].balance);",
             "}"
           ]}}],
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/me/accounts",
+            "url": "{{baseUrl}}/api/v1/accounts",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Returns only Priya's accounts. Notice: no other customers' accounts are visible."
+            "description": "Returns only Priya's accounts because she has the user role. An admin or BankManager hitting the same endpoint would see all accounts."
           }
         },
         {
           "name": "Step 3 — View My Transactions",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts/{{demoAccountId}}/transactions",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{demoAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [{ "key": "accountId", "value": "{{demoAccountId}}" }]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Shows transactions for Priya's first account. Each row has description (Cash Deposit / Cash Withdrawal / Transfer from Name) and a balance snapshot at time of transaction. Sorted newest first."
+            "description": "Shows transactions for Priya's first account. Each row has transactionType (CREDIT / DEBIT) and a balance snapshot at time of transaction. Sorted newest first."
           }
         },
         {
@@ -91,9 +96,9 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/accounts/lookup?accountNo=SB001001",
+              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=SB001001",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "accounts", "lookup"],
+              "path": ["api", "v1", "accounts", "lookup"],
               "query": [{ "key": "accountNo", "value": "SB001001" }]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -111,7 +116,7 @@
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "url": "{{baseUrl}}/api/v1/beneficiaries",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -127,9 +132,9 @@
           "name": "Step 6 — View My Beneficiaries",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/me/beneficiaries",
+            "url": "{{baseUrl}}/api/v1/beneficiaries",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Confirms the beneficiary was added. Shows accountHolderName, accountNo and accountType."
+            "description": "Confirms the beneficiary was added. Returns only Priya's beneficiaries. Shows accountHolderName, accountNo and accountType."
           }
         },
         {
@@ -139,13 +144,13 @@
             "if (json.referenceId) {",
             "  console.log('Transfer successful!');",
             "  console.log('Reference: ' + json.referenceId.slice(0,8).toUpperCase());",
-            "  console.log('Remaining balance: ₹' + json.remainingBalance);",
+            "  console.log('Remaining balance: Rs.' + json.remainingBalance);",
             "  console.log('Recipient: ' + json.recipientName + ' (' + json.recipientAccountNo + ')');",
             "}"
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/me/transfer",
+            "url": "{{baseUrl}}/api/v1/transfer",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -154,23 +159,28 @@
               "mode": "raw",
               "raw": "{\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 1000\n}"
             },
-            "description": "Transfers ₹1000 from Priya's first account to the recipient found in Step 4. fromAccountId and recipientAccountNo are auto-filled from previous steps."
+            "description": "Transfers Rs.1000 from Priya's first account to the recipient found in Step 4. fromAccountId and recipientAccountNo are auto-filled from previous steps."
           }
         },
         {
           "name": "Step 8 — Confirm Transfer in Transactions",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts/{{demoAccountId}}/transactions",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{demoAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [{ "key": "accountId", "value": "{{demoAccountId}}" }]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "The latest transaction (top of the list) should show type DEBIT, description 'Transfer to Riyaz Ahmed', amount ₹1000, and the updated balance snapshot."
+            "description": "The latest transaction (top of the list) should show transactionType DEBIT, amount Rs.1000, and the updated balance snapshot."
           }
         },
         {
           "name": "Step 9 — Remove Beneficiary (cleanup)",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/me/beneficiaries/{{demoBeneficiaryId}}",
+            "url": "{{baseUrl}}/api/v1/beneficiaries/{{demoBeneficiaryId}}",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "description": "Optional cleanup — removes the beneficiary added in Step 5. demoBeneficiaryId was auto-captured."
           }
@@ -217,7 +227,7 @@
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/register",
+            "url": "{{baseUrl}}/api/v1/register",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -254,7 +264,7 @@
           "name": "Step 4 — Create Account for Registered Customer",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/accounts",
+            "url": "{{baseUrl}}/api/v1/accounts",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -270,7 +280,7 @@
     },
     {
       "name": "Auth",
-      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. BankManager (manager) can register users and view customers. Regular users are scoped to their own data via /api/me/*.",
+      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. BankManager (manager) can register users and view customers. Regular users are scoped to their own data — accounts, transactions and beneficiaries return only their own records.",
       "item": [
         {
           "name": "Get Token (riyaz — admin)",
@@ -381,82 +391,17 @@
       "item": [
         {
           "name": "Health Check",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/health" }
         },
         {
           "name": "App Info",
-          "request": { "method": "GET", "url": "{{baseUrl}}/api/info" }
-        }
-      ]
-    },
-    {
-      "name": "Me (Current User)",
-      "description": "All /api/me/* endpoints are scoped to the authenticated user via JWT email — no customer ID needed in the URL.",
-      "item": [
-        {
-          "name": "Get My Accounts",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/me/accounts",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Returns only the accounts belonging to the logged-in user."
-          }
-        },
-        {
-          "name": "Get My Beneficiaries",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/me/beneficiaries",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Returns saved beneficiaries for the logged-in user. Each entry includes accountHolderName, accountNo and accountType."
-          }
-        },
-        {
-          "name": "Add Beneficiary",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/me/beneficiaries",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"accountId\": \"<UUID of recipient account — get from /api/accounts/lookup>\",\n  \"nickname\": \"Priya\"\n}"
-            },
-            "description": "Add a beneficiary. Use GET /api/accounts/lookup?accountNo= first to resolve the account UUID."
-          }
-        },
-        {
-          "name": "Remove Beneficiary",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/me/beneficiaries/:beneficiaryId",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Only removes a beneficiary that belongs to the logged-in user. Returns 403 if the beneficiary belongs to someone else."
-          }
-        },
-        {
-          "name": "Transfer Money",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/me/transfer",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fromAccountId\": \"{{riyazSavingsAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 5000\n}"
-            },
-            "description": "Transfers money between two accounts atomically. Debits fromAccountId and credits recipientAccountNo. Both accounts get a transaction record — sender sees 'Transfer to Name', recipient sees 'Transfer from Name'. Returns referenceId, remainingBalance and timestamp.\n\nErrors:\n- 403 if fromAccountId does not belong to the logged-in user\n- 400 if sender tries to transfer to their own account\n- 500 if balance is insufficient (InsufficientBalanceException)"
-          }
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/info" }
         }
       ]
     },
     {
       "name": "Customers (Admin + BankManager)",
-      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/register: creates Keycloak user + customer DB record (admin + BankManager).\nPOST/PUT/GET /api/customers: admin only (except view).\nDELETE /api/customers: admin only.",
+      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v1/register: creates Keycloak user + customer DB record (admin + BankManager).\nPOST/PUT/GET /api/v1/customers: admin only (except view).\nDELETE /api/v1/customers: admin only.",
       "item": [
         {
           "name": "Register User (admin + BankManager)",
@@ -471,7 +416,7 @@
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/register",
+            "url": "{{baseUrl}}/api/v1/register",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -487,7 +432,7 @@
           "name": "Get All Customers",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/customers",
+            "url": "{{baseUrl}}/api/v1/customers",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
@@ -495,7 +440,7 @@
           "name": "Get Customer (Riyaz)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "url": "{{baseUrl}}/api/v1/customers/{{riyazCustomerId}}",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
@@ -503,7 +448,7 @@
           "name": "Create Customer",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/customers",
+            "url": "{{baseUrl}}/api/v1/customers",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -518,7 +463,7 @@
           "name": "Update Customer (Riyaz)",
           "request": {
             "method": "PUT",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "url": "{{baseUrl}}/api/v1/customers/{{riyazCustomerId}}",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -533,7 +478,7 @@
           "name": "Delete Customer (ADMIN only — 403 for user role)",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}",
+            "url": "{{baseUrl}}/api/v1/customers/{{riyazCustomerId}}",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
@@ -541,16 +486,16 @@
     },
     {
       "name": "Accounts",
-      "description": "GET /api/accounts returns all accounts (admin). GET /api/accounts/lookup finds by account number — used before adding a beneficiary or initiating a transfer.",
+      "description": "GET /api/v1/accounts returns all accounts (admin/BankManager) or only the caller's own accounts (user). GET /api/v1/accounts/lookup finds by account number — used before adding a beneficiary or initiating a transfer.",
       "item": [
         {
           "name": "Lookup Account by Number",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/accounts/lookup?accountNo=SB002001",
+              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=SB002001",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "accounts", "lookup"],
+              "path": ["api", "v1", "accounts", "lookup"],
               "query": [{ "key": "accountNo", "value": "SB002001" }]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -558,18 +503,19 @@
           }
         },
         {
-          "name": "Get All Accounts (admin)",
+          "name": "Get All Accounts (admin / BankManager)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{baseUrl}}/api/v1/accounts",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Admin and BankManager see all accounts. Users see only their own accounts. Same endpoint — filtered by JWT role at runtime."
           }
         },
         {
           "name": "Get Account by ID",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "url": "{{baseUrl}}/api/v1/accounts/{{riyazSavingsAccountId}}",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
@@ -577,7 +523,7 @@
           "name": "Create Account (admin)",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/accounts",
+            "url": "{{baseUrl}}/api/v1/accounts",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -592,7 +538,7 @@
           "name": "Update Account (admin)",
           "request": {
             "method": "PUT",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "url": "{{baseUrl}}/api/v1/accounts/{{riyazSavingsAccountId}}",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -607,7 +553,7 @@
           "name": "Delete Account (ADMIN only — 403 for user role)",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}",
+            "url": "{{baseUrl}}/api/v1/accounts/{{riyazSavingsAccountId}}",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
@@ -615,13 +561,18 @@
     },
     {
       "name": "Transactions",
-      "description": "Each transaction includes a description and a balance_after snapshot (balance at the time of the transaction). Manual transactions use 'Cash Deposit' or 'Cash Withdrawal'. Transfers use 'Transfer to Name' (sender) or 'Transfer from Name' (recipient). Results are sorted newest first.",
+      "description": "Each transaction has a transactionType (CREDIT / DEBIT) and a balance snapshot at time of transaction. Results are sorted newest first.\n\nGET /api/v1/transactions?accountId= — staff can query any account; users can only query their own accounts (ownership enforced via JWT).\nPOST /api/v1/transactions — creates a manual CREDIT or DEBIT; accountId is passed in the request body.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazSavingsAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [{ "key": "accountId", "value": "{{riyazSavingsAccountId}}" }]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
@@ -629,7 +580,12 @@
           "name": "Get Transactions (Riyaz CURRENT)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/accounts/{{riyazCurrentAccountId}}/transactions",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazCurrentAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [{ "key": "accountId", "value": "{{riyazCurrentAccountId}}" }]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
@@ -637,45 +593,56 @@
           "name": "Credit Transaction",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "url": "{{baseUrl}}/api/v1/transactions",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"type\": \"CREDIT\",\n  \"amount\": 5000\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"CREDIT\",\n  \"amount\": 5000,\n  \"accountId\": \"{{riyazSavingsAccountId}}\"\n}" }
           }
         },
         {
           "name": "Debit Transaction",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/accounts/{{riyazSavingsAccountId}}/transactions",
+            "url": "{{baseUrl}}/api/v1/transactions",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"type\": \"DEBIT\",\n  \"amount\": 2000\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"DEBIT\",\n  \"amount\": 2000,\n  \"accountId\": \"{{riyazSavingsAccountId}}\"\n}" }
           }
         }
       ]
     },
     {
-      "name": "Beneficiaries (Admin — by customerId)",
-      "description": "Admin-scoped beneficiary endpoints using customerId in the URL. For user-scoped beneficiary management use /api/me/beneficiaries instead.",
+      "name": "Beneficiaries",
+      "description": "Unified beneficiary endpoints — same URLs for all roles, filtered by JWT at runtime.\n\nGET /api/v1/beneficiaries — users get their own list; staff pass ?customerId= to get a specific customer's list.\nPOST /api/v1/beneficiaries — users add to their own list; staff pass ?customerId= to add for a specific customer.\nPUT /api/v1/beneficiaries/{id} — update nickname.\nDELETE /api/v1/beneficiaries/{id} — users can only delete their own; staff can delete any.",
       "item": [
         {
           "name": "Get Beneficiaries (Riyaz)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/beneficiaries?customerId={{riyazCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "beneficiaries"],
+              "query": [{ "key": "customerId", "value": "{{riyazCustomerId}}" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Staff endpoint — returns beneficiaries for Riyaz by passing his customerId as a query param. A regular user would hit GET /api/v1/beneficiaries with no query param to get their own list."
           }
         },
         {
-          "name": "Add Beneficiary (admin)",
+          "name": "Add Beneficiary (admin — for Riyaz)",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/beneficiaries?customerId={{riyazCustomerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "beneficiaries"],
+              "query": [{ "key": "customerId", "value": "{{riyazCustomerId}}" }]
+            },
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -683,14 +650,15 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567804\",\n  \"nickname\": \"Arjun Savings\"\n}"
-            }
+            },
+            "description": "Staff endpoint — adds a beneficiary for Riyaz using customerId query param. A regular user would POST /api/v1/beneficiaries with no query param to add to their own list."
           }
         },
         {
           "name": "Update Beneficiary Nickname",
           "request": {
             "method": "PUT",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries/:beneficiaryId",
+            "url": "{{baseUrl}}/api/v1/beneficiaries/:beneficiaryId",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -702,11 +670,12 @@
           }
         },
         {
-          "name": "Delete Beneficiary (ADMIN only)",
+          "name": "Delete Beneficiary",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/customers/{{riyazCustomerId}}/beneficiaries/:beneficiaryId",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "url": "{{baseUrl}}/api/v1/beneficiaries/:beneficiaryId",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Users can only delete their own beneficiaries. Staff can delete any."
           }
         }
       ]

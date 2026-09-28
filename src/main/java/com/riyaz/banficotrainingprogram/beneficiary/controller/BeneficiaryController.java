@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/beneficiaries")
+@RequestMapping("/api/v1/beneficiaries")
 public class BeneficiaryController {
     private final BeneficiaryService beneficiaryService;
 
