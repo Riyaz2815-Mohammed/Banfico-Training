@@ -1,0 +1,26 @@
+package com.riyaz.banficotrainingprogram.transaction.controller;
+
+import com.riyaz.banficotrainingprogram.transaction.dto.TransferRequest;
+import com.riyaz.banficotrainingprogram.transaction.dto.TransferResponse;
+import com.riyaz.banficotrainingprogram.transaction.service.TransferService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/transfer")
+public class TransferController {
+    private final TransferService transferService;
+
+    public TransferController(TransferService transferService) {
+        this.transferService = transferService;
+    }
+
+    @PostMapping
+    public ResponseEntity<TransferResponse> transfer(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TransferRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(transferService.transfer(jwt.getClaimAsString("email"), request));
+    }
+}
