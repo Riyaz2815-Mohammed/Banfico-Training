@@ -71,46 +71,38 @@ If DB save fails → Keycloak user is automatically rolled back (deleted).
 
 ### Accounts
 
-| Method | URL | Access | Description |
+All account endpoints are unified — the response is filtered by the caller's role at runtime.
+
+| Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/accounts` | Admin, BankManager | Get all accounts |
-| GET | `/api/accounts/{id}` | Admin, BankManager | Get account by ID |
+| GET | `/api/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
+| GET | `/api/accounts/{id}` | Authenticated | Returns the account by ID |
+| GET | `/api/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
 | POST | `/api/accounts` | Admin | Create account |
 | PUT | `/api/accounts/{id}` | Admin | Update account |
 | DELETE | `/api/accounts/{id}` | Admin | Delete account |
-| GET | `/api/accounts/lookup/{accountNo}` | Authenticated | Look up account by account number |
 
 ### Transactions
 
-| Method | URL | Access | Description |
+| Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/accounts/{accountId}/transactions` | Admin, BankManager | Get transactions for account |
-| POST | `/api/accounts/{accountId}/transactions` | Admin | Create transaction |
+| GET | `/api/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only (ownership enforced) |
+| POST | `/api/transactions` | Admin | Create a CREDIT or DEBIT transaction |
 
 ### Beneficiaries
 
-| Method | URL | Access | Description |
+| Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/customers/{customerId}/beneficiaries` | Admin, BankManager | Get beneficiaries for customer |
-| POST | `/api/customers/{customerId}/beneficiaries` | Admin | Add beneficiary |
-| PUT | `/api/customers/{customerId}/beneficiaries/{id}` | Admin | Update nickname |
-| DELETE | `/api/customers/{customerId}/beneficiaries/{id}` | Admin | Remove beneficiary |
+| GET | `/api/beneficiaries` | Authenticated | Staff + `?customerId=` → specific customer; User → own list |
+| POST | `/api/beneficiaries` | Authenticated | Staff + `?customerId=` → add for customer; User → add to own list |
+| PUT | `/api/beneficiaries/{id}` | Authenticated | Update nickname |
+| DELETE | `/api/beneficiaries/{id}` | Authenticated | Staff → any; User → own beneficiaries only |
 
 ### Fund Transfer
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| POST | `/api/transfer` | User | Transfer between accounts |
-
-### Me (Current User)
-
-| Method | URL | Access | Description |
-|---|---|---|---|
-| GET | `/api/me/accounts` | User | Get own accounts |
-| GET | `/api/me/accounts/{accountId}/transactions` | User | Get transactions for own account |
-| GET | `/api/me/beneficiaries` | User | Get own beneficiaries |
-| POST | `/api/me/beneficiaries` | User | Add beneficiary to own list |
-| DELETE | `/api/me/beneficiaries/{id}` | User | Remove own beneficiary |
+| POST | `/api/transfer` | Authenticated | Transfer funds between accounts (sender resolved from JWT) |
 
 ## Global Exception Handling
 
