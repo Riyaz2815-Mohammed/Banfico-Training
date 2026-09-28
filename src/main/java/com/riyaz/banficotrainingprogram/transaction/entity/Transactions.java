@@ -32,7 +32,7 @@ public class Transactions {
 
     protected Transactions() {}
 
-    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, String description, Integer balanceAfter) {
+    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, Integer balanceAfter) {
         this.type = type;
         this.amount = amount;
         this.transactionTime = transactionTime;

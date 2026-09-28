@@ -39,8 +39,7 @@ public class TransactionServiceImpl implements TransactionService {
             account.setBalance(account.getBalance() - transaction.getAmount());
         }
         accountRepo.save(account);
-        String description = transaction.getType().equalsIgnoreCase("CREDIT") ? "Cash Deposit" : "Cash Withdrawal";
-        Transactions saved = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, description, account.getBalance()));
+        Transactions saved = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, account.getBalance()));
         return new TransactionResponse(saved.getId(), saved.getType(), saved.getAccount().getId(), saved.getBalanceAfter(), saved.getAmount(), saved.getTransactionTime());
     }
 
