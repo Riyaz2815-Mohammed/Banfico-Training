@@ -23,9 +23,6 @@ public class Transactions {
     @Column(name = "transaction_time", nullable = false, updatable = false)
     private LocalDateTime transactionTime;
 
-    @Column(name = "description", length = 100)
-    private String description;
-
     @Column(name = "balance_after")
     private Integer balanceAfter;
 
@@ -35,12 +32,11 @@ public class Transactions {
 
     protected Transactions() {}
 
-    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, String description, Integer balanceAfter) {
+    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, Integer balanceAfter) {
         this.type = type;
         this.amount = amount;
         this.transactionTime = transactionTime;
         this.account = account;
-        this.description = description;
         this.balanceAfter = balanceAfter;
     }
 
@@ -54,8 +50,6 @@ public class Transactions {
     public void setTransactionTime(LocalDateTime transactionTime) { this.transactionTime = transactionTime; }
     public Account getAccount() { return account; }
     public void setAccount(Account account) { this.account = account; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
     public Integer getBalanceAfter() { return balanceAfter; }
     public void setBalanceAfter(Integer balanceAfter) { this.balanceAfter = balanceAfter; }
 }
