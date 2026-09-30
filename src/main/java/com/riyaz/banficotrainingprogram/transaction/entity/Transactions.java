@@ -26,6 +26,9 @@ public class Transactions {
     @Column(name = "balance_after")
     private Integer balanceAfter;
 
+    @Column(name = "description")
+    private String description;
+
     @ManyToOne
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
@@ -40,6 +43,15 @@ public class Transactions {
         this.balanceAfter = balanceAfter;
     }
 
+    public Transactions(String type, Integer amount, LocalDateTime transactionTime, Account account, Integer balanceAfter, String description) {
+        this.type = type;
+        this.amount = amount;
+        this.transactionTime = transactionTime;
+        this.account = account;
+        this.balanceAfter = balanceAfter;
+        this.description = description;
+    }
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public String getType() { return type; }
@@ -52,4 +64,6 @@ public class Transactions {
     public void setAccount(Account account) { this.account = account; }
     public Integer getBalanceAfter() { return balanceAfter; }
     public void setBalanceAfter(Integer balanceAfter) { this.balanceAfter = balanceAfter; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }
