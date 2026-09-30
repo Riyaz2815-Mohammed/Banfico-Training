@@ -7,12 +7,17 @@ import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 
 public class TransferRequest {
+    private UUID paymentId;
     private UUID fromAccountId;
     private String recipientAccountNo;
     private Integer amount;
     private String note;
 
     public TransferRequest() {}
+
+    @NotNull(message = "Payment ID is required")
+    public UUID getPaymentId() { return paymentId; }
+    public void setPaymentId(UUID paymentId) { this.paymentId = paymentId; }
 
     @NotNull(message = "Source account is required")
     public UUID getFromAccountId() { return fromAccountId; }
