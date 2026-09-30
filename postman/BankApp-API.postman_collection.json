@@ -16,6 +16,7 @@
     { "key": "recipientAccountId", "value": "" },
     { "key": "recipientAccountNo", "value": "" },
     { "key": "demoBeneficiaryId", "value": "" },
+    { "key": "paymentId", "value": "" },
     { "key": "clientSecret", "value": "FILL_IN", "description": "Keycloak client secret for bankapp-frontend" },
     { "key": "riyazPassword", "value": "FILL_IN" },
     { "key": "priyaPassword", "value": "FILL_IN" },
@@ -29,7 +30,7 @@
   "item": [
     {
       "name": "User Workflow (Demo)",
-      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts (RBAC — same endpoint as admin but filtered by JWT)\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money\n8. Confirm transfer appears in transactions\n9. Remove beneficiary (cleanup)",
+      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts (RBAC — same endpoint as admin but filtered by JWT)\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money (v2 — idempotent, generates a paymentId automatically)\n8. Confirm transfer appears in transactions\n9. Remove beneficiary (cleanup)",
       "item": [
         {
           "name": "Step 1 — Login as Priya (user)",
@@ -79,8 +80,7 @@
               "path": ["api", "v1", "transactions"],
               "query": [{ "key": "accountId", "value": "{{demoAccountId}}" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Shows transactions for Priya's first account. Each row has transactionType (CREDIT / DEBIT) and a balance snapshot at time of transaction. Sorted newest first."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -101,8 +101,7 @@
               "path": ["api", "v1", "accounts", "lookup"],
               "query": [{ "key": "accountNo", "value": "SB001001" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Finds an account by its account number and returns the holder's name. Used to confirm you are sending to the right person before adding or transferring. Change accountNo to any other user's account."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -124,8 +123,7 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountId\": \"{{recipientAccountId}}\",\n  \"nickname\": \"Riyaz\"\n}"
-            },
-            "description": "Saves the looked-up account as a beneficiary with a nickname. recipientAccountId was auto-captured in Step 4."
+            }
           }
         },
         {
@@ -133,33 +131,39 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/beneficiaries",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Confirms the beneficiary was added. Returns only Priya's beneficiaries. Shows accountHolderName, accountNo and accountType."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
           "name": "Step 7 — Transfer Money",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "const json = pm.response.json();",
-            "if (json.referenceId) {",
-            "  console.log('Transfer successful!');",
-            "  console.log('Reference: ' + json.referenceId.slice(0,8).toUpperCase());",
-            "  console.log('Remaining balance: Rs.' + json.remainingBalance);",
-            "  console.log('Recipient: ' + json.recipientName + ' (' + json.recipientAccountNo + ')');",
-            "}"
-          ]}}],
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });",
+              "pm.collectionVariables.set('paymentId', uuid);",
+              "console.log('Generated paymentId: ' + uuid);"
+            ]}},
+            { "listen": "test", "script": { "exec": [
+              "const json = pm.response.json();",
+              "if (json.paymentId) {",
+              "  console.log('Transfer status: ' + json.status);",
+              "  console.log('Payment ID: ' + json.paymentId);",
+              "  console.log('To: ' + json.toAccountName + ' (' + json.toAccountNo + ')');",
+              "  console.log('Amount: Rs.' + json.amount);",
+              "}"
+            ]}}
+          ],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/v1/transfer",
+            "url": "{{baseUrl}}/api/v2/transfer",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 1000\n}"
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 1000,\n  \"note\": \"Test transfer\"\n}"
             },
-            "description": "Transfers Rs.1000 from Priya's first account to the recipient found in Step 4. fromAccountId and recipientAccountNo are auto-filled from previous steps."
+            "description": "Idempotent transfer — a UUID paymentId is auto-generated by the pre-request script. Re-sending this request with the same paymentId returns the cached result instead of creating a duplicate transfer.\n\nResponse is a PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, status (COMPLETED/FAILED), initiatedAt."
           }
         },
         {
@@ -172,8 +176,7 @@
               "path": ["api", "v1", "transactions"],
               "query": [{ "key": "accountId", "value": "{{demoAccountId}}" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "The latest transaction (top of the list) should show transactionType DEBIT, amount Rs.1000, and the updated balance snapshot."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -181,15 +184,14 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/v1/beneficiaries/{{demoBeneficiaryId}}",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Optional cleanup — removes the beneficiary added in Step 5. demoBeneficiaryId was auto-captured."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
     },
     {
       "name": "BankManager Workflow (Demo)",
-      "description": "Run top to bottom to demo the full BankManager onboarding flow.\n\nSteps:\n1. Login as manager (BankManager role)\n2. Register a new user — creates both Keycloak account and customer DB record\n3. Login as admin to create an account for the new customer\n4. Create account for the registered customer\n5. Share credentials with the user — they log in and change their password\n\nNote: after Step 2, check the console log for the customerId and keycloakUserId.",
+      "description": "Run top to bottom to demo the full BankManager onboarding flow.\n\nSteps:\n1. Login as manager (BankManager role)\n2. Register a new user — creates both Keycloak account and customer DB record\n3. Login as admin to create an account for the new customer\n4. Create account for the registered customer",
       "item": [
         {
           "name": "Step 1 — Login as Manager",
@@ -221,7 +223,6 @@
             "  pm.collectionVariables.set('registeredKeycloakUserId', json.keycloakUserId);",
             "  console.log('Registered: ' + json.firstName + ' ' + json.lastName + ' (' + json.email + ')');",
             "  console.log('customerId: ' + json.customerId);",
-            "  console.log('keycloakUserId: ' + json.keycloakUserId);",
             "  console.log(json.message);",
             "}"
           ]}}],
@@ -235,8 +236,7 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
-            },
-            "description": "Creates a Keycloak user account (with user role and temporary password) AND a customer DB record in one call. Returns customerId, keycloakUserId and a confirmation message.\n\nRoles that can call this: admin, BankManager.\n\nThe new user can log in immediately with the username/password above. On first login Keycloak will prompt them to set a new password (because temporaryPassword: true)."
+            }
           }
         },
         {
@@ -272,15 +272,14 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountNo\": \"SB010001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 10000,\n  \"customerId\": \"{{registeredCustomerId}}\"\n}"
-            },
-            "description": "Creates a savings account for the newly registered customer. registeredCustomerId was auto-captured in Step 2. After this step the user can see their account when they log in."
+            }
           }
         }
       ]
     },
     {
       "name": "Auth",
-      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable. Admin (riyaz) can access all endpoints. BankManager (manager) can register users and view customers. Regular users are scoped to their own data — accounts, transactions and beneficiaries return only their own records.",
+      "description": "Get access tokens. Run one of these first — the test script auto-sets the {{token}} variable.",
       "item": [
         {
           "name": "Get Token (riyaz — admin)",
@@ -401,7 +400,7 @@
     },
     {
       "name": "Customers (Admin + BankManager)",
-      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v1/register: creates Keycloak user + customer DB record (admin + BankManager).\nPOST/PUT/GET /api/v1/customers: admin only (except view).\nDELETE /api/v1/customers: admin only.",
+      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v1/register — creates Keycloak user + customer DB record (admin + BankManager).\nPOST /api/v1/managers — creates a BankManager account in Keycloak (admin only).\nGET/PUT/DELETE /api/v1/customers — admin only.",
       "item": [
         {
           "name": "Register User (admin + BankManager)",
@@ -424,8 +423,31 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create Manager (admin only)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.keycloakId) {",
+            "  console.log('Manager created: ' + json.firstName + ' ' + json.lastName + ' (' + json.email + ')');",
+            "  console.log('keycloakId: ' + json.keycloakId);",
+            "  console.log(json.message);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/managers",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.smith@bankapp.com\",\n  \"username\": \"janemanager\",\n  \"temporaryPassword\": \"Manager@1234\"\n}"
             },
-            "description": "Creates a Keycloak user with the 'user' role and a temporary password, AND saves the customer record to the database. The user can log in immediately — Keycloak will prompt for a password change on first login.\n\nRequired roles: admin or BankManager."
+            "description": "Creates a Keycloak user with the BankManager role. Only admin can call this. Returns keycloakId, username, email, firstName, lastName and a confirmation message."
           }
         },
         {
@@ -445,21 +467,6 @@
           }
         },
         {
-          "name": "Create Customer",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/customers",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"pan\": \"XYZAB1234Z\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"test@bankapp.com\",\n  \"phoneNumber\": \"9999999999\"\n}"
-            }
-          }
-        },
-        {
           "name": "Update Customer (Riyaz)",
           "request": {
             "method": "PUT",
@@ -475,7 +482,7 @@
           }
         },
         {
-          "name": "Delete Customer (ADMIN only — 403 for user role)",
+          "name": "Delete Customer (admin only — 403 for other roles)",
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/v1/customers/{{riyazCustomerId}}",
@@ -486,7 +493,7 @@
     },
     {
       "name": "Accounts",
-      "description": "GET /api/v1/accounts returns all accounts (admin/BankManager) or only the caller's own accounts (user). GET /api/v1/accounts/lookup finds by account number — used before adding a beneficiary or initiating a transfer.",
+      "description": "GET /api/v1/accounts returns all accounts (admin/BankManager) or only the caller's own accounts (user). GET /api/v1/accounts/lookup finds by account number.",
       "item": [
         {
           "name": "Lookup Account by Number",
@@ -498,17 +505,15 @@
               "path": ["api", "v1", "accounts", "lookup"],
               "query": [{ "key": "accountNo", "value": "SB002001" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Returns id, accountNo, accountType and accountHolderName for the given account number. Used by the Transfer and Add Beneficiary flows to confirm the recipient before submitting."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
-          "name": "Get All Accounts (admin / BankManager)",
+          "name": "Get All Accounts (admin / BankManager sees all; user sees own)",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/accounts",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Admin and BankManager see all accounts. Users see only their own accounts. Same endpoint — filtered by JWT role at runtime."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
@@ -550,7 +555,7 @@
           }
         },
         {
-          "name": "Delete Account (ADMIN only — 403 for user role)",
+          "name": "Delete Account (admin only — 403 for other roles)",
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/v1/accounts/{{riyazSavingsAccountId}}",
@@ -561,7 +566,7 @@
     },
     {
       "name": "Transactions",
-      "description": "Each transaction has a transactionType (CREDIT / DEBIT) and a balance snapshot at time of transaction. Results are sorted newest first.\n\nGET /api/v1/transactions?accountId= — staff can query any account; users can only query their own accounts (ownership enforced via JWT).\nPOST /api/v1/transactions — creates a manual CREDIT or DEBIT; accountId is passed in the request body.",
+      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nNote: transactions are created automatically by transfers. The POST endpoint is admin-only for manual credit/debit adjustments.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
@@ -590,7 +595,7 @@
           }
         },
         {
-          "name": "Credit Transaction",
+          "name": "Credit Transaction (admin — manual adjustment)",
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/v1/transactions",
@@ -602,7 +607,7 @@
           }
         },
         {
-          "name": "Debit Transaction",
+          "name": "Debit Transaction (admin — manual adjustment)",
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/v1/transactions",
@@ -616,11 +621,145 @@
       ]
     },
     {
-      "name": "Beneficiaries",
-      "description": "Unified beneficiary endpoints — same URLs for all roles, filtered by JWT at runtime.\n\nGET /api/v1/beneficiaries — users get their own list; staff pass ?customerId= to get a specific customer's list.\nPOST /api/v1/beneficiaries — users add to their own list; staff pass ?customerId= to add for a specific customer.\nPUT /api/v1/beneficiaries/{id} — update nickname.\nDELETE /api/v1/beneficiaries/{id} — users can only delete their own; staff can delete any.",
+      "name": "Transfer (v2)",
+      "description": "POST /api/v2/transfer — user only. Idempotent: the client generates a UUID paymentId before sending. Re-sending the same paymentId returns the cached result instead of creating a duplicate.\n\nResponse is PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, note, status (COMPLETED/FAILED), initiatedByName, initiatedAt, completedAt, failureReason.",
       "item": [
         {
-          "name": "Get Beneficiaries (Riyaz)",
+          "name": "Transfer Money",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });",
+              "pm.collectionVariables.set('paymentId', uuid);",
+              "console.log('Generated paymentId: ' + uuid);"
+            ]}},
+            { "listen": "test", "script": { "exec": [
+              "const json = pm.response.json();",
+              "if (json.paymentId) {",
+              "  console.log('Status: ' + json.status);",
+              "  console.log('Payment ID: ' + json.paymentId);",
+              "  console.log('To: ' + json.toAccountName + ' (' + json.toAccountNo + ')');",
+              "  console.log('Amount: Rs.' + json.amount);",
+              "  if (json.failureReason) console.log('Failure: ' + json.failureReason);",
+              "}"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v2/transfer",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Retry Same Transfer (idempotency test)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "console.log('Status: ' + json.status + ' (should be COMPLETED — same paymentId, no duplicate)');",
+            "console.log('Payment ID: ' + json.paymentId);"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v2/transfer",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
+            },
+            "description": "Uses the same {{paymentId}} as the previous request. The backend returns the cached result — no second transfer is created. This is idempotency in action."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "description": "GET /api/v1/payments — admin and BankManager see all payments; user sees only their own.\n\nOptional query param ?accountId= lets staff filter payments for a specific account.\n\nEach payment has a status: PENDING, COMPLETED, or FAILED.",
+      "item": [
+        {
+          "name": "Get All Payments (admin / BankManager)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/payments",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns all payments across all customers when called with admin or BankManager token. Returns only the caller's own payments when called with a user token."
+          }
+        },
+        {
+          "name": "Get Payments for Account (staff — filter by accountId)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments?accountId={{riyazSavingsAccountId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [{ "key": "accountId", "value": "{{riyazSavingsAccountId}}" }]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get My Payments (user)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/payments",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "When called with a user token, returns only that user's own payments regardless of query params."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "description": "GET /api/v1/profile — returns the logged-in user's own profile.\nPUT /api/v1/profile — updates firstName, lastName, phoneNumber. Email and PAN cannot be changed.\n\nUser role only — staff (admin/BankManager) get 403.",
+      "item": [
+        {
+          "name": "Get My Profile (user only)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/profile",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Update My Profile (user only)",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"phoneNumber\": \"9876500001\"\n}"
+            },
+            "description": "Updates firstName, lastName and phoneNumber. Email and PAN are read-only — passing them in the body has no effect."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Beneficiaries",
+      "description": "GET — admin and BankManager can pass ?customerId= to view any customer's beneficiaries; users see their own.\n\nPOST / PUT / DELETE — user role only. Staff cannot add, edit or delete beneficiaries.",
+      "item": [
+        {
+          "name": "Get My Beneficiaries (user)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/beneficiaries",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Get Beneficiaries for Customer (staff — filter by customerId)",
           "request": {
             "method": "GET",
             "url": {
@@ -629,20 +768,21 @@
               "path": ["api", "v1", "beneficiaries"],
               "query": [{ "key": "customerId", "value": "{{riyazCustomerId}}" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Staff endpoint — returns beneficiaries for Riyaz by passing his customerId as a query param. A regular user would hit GET /api/v1/beneficiaries with no query param to get their own list."
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
         {
-          "name": "Add Beneficiary (admin — for Riyaz)",
+          "name": "Add Beneficiary (user only — 403 for staff)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "if (json.id) {",
+            "  pm.collectionVariables.set('demoBeneficiaryId', json.id);",
+            "  console.log('Beneficiary saved: ' + json.accountHolderName + ' (' + json.nickname + ')');",
+            "}"
+          ]}}],
           "request": {
             "method": "POST",
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/beneficiaries?customerId={{riyazCustomerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "beneficiaries"],
-              "query": [{ "key": "customerId", "value": "{{riyazCustomerId}}" }]
-            },
+            "url": "{{baseUrl}}/api/v1/beneficiaries",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -650,32 +790,30 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567804\",\n  \"nickname\": \"Arjun Savings\"\n}"
-            },
-            "description": "Staff endpoint — adds a beneficiary for Riyaz using customerId query param. A regular user would POST /api/v1/beneficiaries with no query param to add to their own list."
+            }
           }
         },
         {
-          "name": "Update Beneficiary Nickname",
+          "name": "Update Beneficiary Nickname (user only — 403 for staff)",
           "request": {
             "method": "PUT",
-            "url": "{{baseUrl}}/api/v1/beneficiaries/:beneficiaryId",
+            "url": "{{baseUrl}}/api/v1/beneficiaries/{{demoBeneficiaryId}}",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567803\",\n  \"nickname\": \"Priya - Updated\"\n}"
+              "raw": "{\n  \"accountId\": \"b1b2c3d4-e5f6-7890-abcd-ef1234567804\",\n  \"nickname\": \"Arjun - Updated\"\n}"
             }
           }
         },
         {
-          "name": "Delete Beneficiary",
+          "name": "Delete Beneficiary (user only — 403 for staff)",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/v1/beneficiaries/:beneficiaryId",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Users can only delete their own beneficiaries. Staff can delete any."
+            "url": "{{baseUrl}}/api/v1/beneficiaries/{{demoBeneficiaryId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
