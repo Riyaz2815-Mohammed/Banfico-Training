@@ -40,7 +40,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
         accountRepo.save(account);
         Transactions saved = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, account.getBalance()));
-        return new TransactionResponse(saved.getId(), saved.getType(), saved.getAccount().getId(), saved.getBalanceAfter(), saved.getAmount(), saved.getTransactionTime());
+        return new TransactionResponse(saved.getId(), saved.getType(), saved.getAccount().getId(), saved.getBalanceAfter(), saved.getAmount(), saved.getTransactionTime(), saved.getDescription());
     }
 
     @Override
@@ -50,6 +50,6 @@ public class TransactionServiceImpl implements TransactionService {
             Account account = accountRepo.findById(accountId).orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
             if (!account.getCustomer().getId().equals(customer.getId())) throw new ResourceNotFoundException("Account not found with id: " + accountId);
         }
-        return transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(accountId).stream().map(t -> new TransactionResponse(t.getId(), t.getType(), t.getAccount().getId(), t.getBalanceAfter(), t.getAmount(), t.getTransactionTime())).toList();
+        return transactionsRepo.findByAccountIdOrderByTransactionTimeDesc(accountId).stream().map(t -> new TransactionResponse(t.getId(), t.getType(), t.getAccount().getId(), t.getBalanceAfter(), t.getAmount(), t.getTransactionTime(), t.getDescription())).toList();
     }
 }
