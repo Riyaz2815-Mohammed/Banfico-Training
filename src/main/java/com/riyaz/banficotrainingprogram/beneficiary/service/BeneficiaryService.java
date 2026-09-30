@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface BeneficiaryService {
+    List<BeneficiaryResponse> getAllBeneficiaries();
     List<BeneficiaryResponse> getBeneficiaries(UUID customerId);
     List<BeneficiaryResponse> getMyBeneficiaries(String email);
     BeneficiaryResponse createBeneficiary(UUID customerId, BeneficiaryRequest request);
