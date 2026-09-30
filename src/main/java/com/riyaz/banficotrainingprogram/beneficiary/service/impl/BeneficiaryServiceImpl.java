@@ -32,6 +32,11 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
     }
 
     @Override
+    public List<BeneficiaryResponse> getAllBeneficiaries() {
+        return beneficiaryRepo.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Override
     public List<BeneficiaryResponse> getBeneficiaries(UUID customerId) {
         return beneficiaryRepo.findByCustomerId(customerId).stream().map(this::toResponse).toList();
     }
