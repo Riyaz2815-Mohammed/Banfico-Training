@@ -1,5 +1,7 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
+import com.riyaz.banficotrainingprogram.customer.dto.CreateManagerRequest;
+import com.riyaz.banficotrainingprogram.customer.dto.CreateManagerResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterResponse;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
@@ -29,5 +31,11 @@ public class RegistrationController {
             try { keycloakAdminService.deleteUser(keycloakUserId); } catch (Exception ignored) {}
             throw dbEx;
         }
+    }
+
+    @PostMapping("/managers")
+    public ResponseEntity<CreateManagerResponse> createManager(@Valid @RequestBody CreateManagerRequest request) {
+        String keycloakId = keycloakAdminService.createManager(request.getUsername(), request.getEmail(), request.getFirstName(), request.getLastName(), request.getTemporaryPassword());
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CreateManagerResponse(keycloakId, request.getUsername(), request.getEmail(), request.getFirstName(), request.getLastName()));
     }
 }
