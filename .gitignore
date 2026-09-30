@@ -34,3 +34,7 @@ build/
 .vscode/
 #.env#
 .env
+
+### Local ###
+.claude/
+pom.xml.versionsBackup
