@@ -80,4 +80,20 @@ public class CustomerServiceImpl implements CustomerService {
         Customer saved = customerRepo.save(new Customer(request.getPan(), request.getFirstName(), request.getLastName(), request.getEmail(), request.getPhoneNumber()));
         return new RegisterResponse(saved.getId(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPan(), saved.getPhoneNumber(), keycloakUserId);
     }
+
+    @Override
+    public CustomerResponse getMyProfile(String email) {
+        Customer c = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        return new CustomerResponse(c.getId(), c.getPan(), c.getFirstName(), c.getLastName(), c.getEmail(), c.getPhoneNumber());
+    }
+
+    @Override
+    public CustomerResponse updateMyProfile(String email, CustomerRequest request) {
+        Customer c = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        c.setFirstName(request.getFirstName());
+        c.setLastName(request.getLastName());
+        c.setPhoneNumber(request.getPhoneNumber());
+        Customer saved = customerRepo.save(c);
+        return new CustomerResponse(saved.getId(), saved.getPan(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPhoneNumber());
+    }
 }
