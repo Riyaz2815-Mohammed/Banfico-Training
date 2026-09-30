@@ -111,6 +111,15 @@ public class KeycloakAdminService {
         return userId;
     }
 
+    @SuppressWarnings("unchecked")
+    public List<Map> getManagers() {
+        String token = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        ResponseEntity<List> resp = restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/roles/BankManager/users", HttpMethod.GET, new HttpEntity<>(headers), List.class);
+        return resp.getBody() != null ? resp.getBody() : List.of();
+    }
+
     public void deleteUser(String userId) {
         String token = getAdminToken();
         HttpHeaders headers = new HttpHeaders();
