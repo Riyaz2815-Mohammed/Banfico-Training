@@ -1,0 +1,147 @@
+{
+  "id": "bankapp",
+  "realm": "bankapp",
+  "displayName": "BankApp",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak.v3",
+  "accessTokenLifespan": 1800,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator — full CRUD access",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "bankapp"
+      },
+      {
+        "name": "user",
+        "description": "Regular user — read/write own data",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "bankapp"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "bankapp-frontend",
+      "name": "BankApp Frontend",
+      "description": "Next.js frontend for BankApp",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "secret": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "+"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*##*"
+      },
+      "fullScopeAllowed": true
+    }
+  ],
+  "users": [
+    {
+      "username": "riyaz",
+      "firstName": "Riyaz",
+      "lastName": "Mohammed",
+      "email": "riyaz@bankapp.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Riyaz@1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "user"]
+    },
+    {
+      "username": "priya",
+      "firstName": "Priya",
+      "lastName": "Sharma",
+      "email": "priya@bankapp.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Priya@1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "arjun",
+      "firstName": "Arjun",
+      "lastName": "Mehta",
+      "email": "arjun@bankapp.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Arjun@1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "sneha",
+      "firstName": "Sneha",
+      "lastName": "Patel",
+      "email": "sneha@bankapp.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Sneha@1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "rahul",
+      "firstName": "Rahul",
+      "lastName": "Kumar",
+      "email": "rahul@bankapp.com",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Rahul@1234",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    }
+  ]
+}
