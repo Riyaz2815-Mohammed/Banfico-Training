@@ -43,14 +43,31 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/health", "/api/v1/info").permitAll()
+
+                .requestMatchers(HttpMethod.POST, "/api/v1/managers").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/register").hasAnyRole("ADMIN", "BANKMANAGER")
+
                 .requestMatchers(HttpMethod.POST, "/api/v1/accounts").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/accounts/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/accounts/**").hasRole("ADMIN")
+
                 .requestMatchers(HttpMethod.POST, "/api/v1/customers").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/customers/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/**").hasRole("ADMIN")
+
                 .requestMatchers(HttpMethod.POST, "/api/v1/transactions").hasRole("ADMIN")
+
+                .requestMatchers(HttpMethod.GET, "/api/v1/beneficiaries/**").hasAnyRole("ADMIN", "BANKMANAGER", "USER")
+                .requestMatchers(HttpMethod.POST, "/api/v1/beneficiaries/**").hasRole("USER")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/beneficiaries/**").hasRole("USER")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/beneficiaries/**").hasRole("USER")
+
+                .requestMatchers("/api/v2/transfer").hasRole("USER")
+
+                .requestMatchers("/api/v1/profile/**").hasRole("USER")
+
+                .requestMatchers(HttpMethod.GET, "/api/v1/payments/**").hasAnyRole("ADMIN", "BANKMANAGER", "USER")
+
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
