@@ -29,15 +29,12 @@ public class BeneficiaryController {
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
         if (isStaff && customerId != null) return ResponseEntity.ok(beneficiaryService.getBeneficiaries(customerId));
+        if (isStaff) return ResponseEntity.ok(beneficiaryService.getAllBeneficiaries());
         return ResponseEntity.ok(beneficiaryService.getMyBeneficiaries(jwt.getClaimAsString("email")));
     }
 
     @PostMapping
-    public ResponseEntity<BeneficiaryResponse> addBeneficiary(@RequestParam(required = false) UUID customerId, @Valid @RequestBody BeneficiaryRequest request, @AuthenticationPrincipal Jwt jwt) {
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        if (isStaff && customerId != null) return ResponseEntity.status(HttpStatus.CREATED).body(beneficiaryService.createBeneficiary(customerId, request));
+    public ResponseEntity<BeneficiaryResponse> addBeneficiary(@Valid @RequestBody BeneficiaryRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.status(HttpStatus.CREATED).body(beneficiaryService.addMyBeneficiary(jwt.getClaimAsString("email"), request));
     }
 
@@ -48,11 +45,7 @@ public class BeneficiaryController {
 
     @DeleteMapping("/{beneficiaryId}")
     public ResponseEntity<Void> deleteBeneficiary(@PathVariable UUID beneficiaryId, @AuthenticationPrincipal Jwt jwt) {
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        if (isStaff) beneficiaryService.deleteBeneficiary(beneficiaryId);
-        else beneficiaryService.removeMyBeneficiary(jwt.getClaimAsString("email"), beneficiaryId);
+        beneficiaryService.removeMyBeneficiary(jwt.getClaimAsString("email"), beneficiaryId);
         return ResponseEntity.noContent().build();
     }
 }
