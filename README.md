@@ -72,7 +72,6 @@ Roles are assigned in Keycloak and embedded in the JWT. `KeycloakJwtConverter` m
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
 | GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only |
-| POST | `/api/v1/transactions` | Admin | Manual CREDIT or DEBIT adjustment |
 
 ### Beneficiaries
 
