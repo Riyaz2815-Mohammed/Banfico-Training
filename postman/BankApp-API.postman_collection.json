@@ -228,7 +228,7 @@
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/v1/register",
+            "url": "{{baseUrl}}/api/v2/customers",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
@@ -400,7 +400,7 @@
     },
     {
       "name": "Customers (Admin + BankManager)",
-      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v1/register — creates Keycloak user + customer DB record (admin + BankManager).\nPOST /api/v1/managers — creates a BankManager account in Keycloak (admin only).\nGET/PUT/DELETE /api/v1/customers — admin only.",
+      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v2/customers — creates Keycloak user + customer DB record (admin + BankManager).\nPOST /api/v1/managers — creates a BankManager account in Keycloak (admin only).\nGET/PUT/DELETE /api/v1/customers — admin only.",
       "item": [
         {
           "name": "Register User (admin + BankManager)",
@@ -415,7 +415,7 @@
           ]}}],
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/v1/register",
+            "url": "{{baseUrl}}/api/v2/customers",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" },
               { "key": "Content-Type", "value": "application/json" }
