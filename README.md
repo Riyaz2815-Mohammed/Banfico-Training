@@ -98,6 +98,7 @@ Idempotency: if a transfer with the same `paymentId` already completed, the cach
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
 | GET | `/api/v1/payments` | Authenticated | Staff → all payments (optional `?accountId=`); User → own payments |
+| GET | `/api/v1/payments/{paymentId}` | Authenticated | Get a single payment by ID |
 
 Payment lifecycle: `PENDING` → `COMPLETED` / `FAILED`.
 
