@@ -566,7 +566,7 @@
     },
     {
       "name": "Transactions",
-      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nNote: transactions are created automatically by transfers. The POST endpoint is admin-only for manual credit/debit adjustments.",
+      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nTransactions are created automatically when a transfer completes — there is no manual creation endpoint.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
@@ -594,30 +594,6 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         },
-        {
-          "name": "Credit Transaction (admin — manual adjustment)",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/transactions",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"type\": \"CREDIT\",\n  \"amount\": 5000,\n  \"accountId\": \"{{riyazSavingsAccountId}}\"\n}" }
-          }
-        },
-        {
-          "name": "Debit Transaction (admin — manual adjustment)",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/transactions",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"type\": \"DEBIT\",\n  \"amount\": 2000,\n  \"accountId\": \"{{riyazSavingsAccountId}}\"\n}" }
-          }
-        }
       ]
     },
     {
