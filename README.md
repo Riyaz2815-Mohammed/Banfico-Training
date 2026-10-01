@@ -1,6 +1,6 @@
 # Banfico Training Program — Spring Boot Banking API
 
-A REST API backend for a banking system built with Spring Boot 4.1.0. Handles customers, accounts, transactions, beneficiaries, and fund transfers. Secured with Keycloak JWT authentication and role-based access control.
+A REST API backend for a banking system built with Spring Boot 4.1.0. Handles customers, accounts, transactions, beneficiaries, payments, and fund transfers. Secured with Keycloak JWT authentication and role-based access control.
 
 ## Architecture
 
@@ -16,67 +16,52 @@ Spring Boot (this API) ──── PostgreSQL
 Keycloak (identity provider)
 ```
 
-Spring Boot acts as an **OAuth2 resource server** — it never stores passwords. Every request must carry a valid Keycloak JWT. Spring verifies the token's signature using Keycloak's public key and extracts roles from it.
+Spring Boot acts as an **OAuth2 resource server** — it never stores passwords. Every request must carry a valid Keycloak JWT. Spring verifies the token's signature using Keycloak's public key (`KEYCLOAK_JWK_URI`) and extracts roles from the `realm_access.roles` claim.
 
 ## Roles
 
 | Role | Access |
 |---|---|
-| `user` | Own accounts, own transactions, own beneficiaries, transfers |
-| `BankManager` | All customers, all accounts, all transactions, register new users |
-| `admin` | Everything — including delete operations |
+| `user` | Own accounts, own transactions, own beneficiaries, transfers, own payments, own profile |
+| `BankManager` | All customers, all accounts, all transactions, all payments, register new users |
+| `admin` | Everything — including delete, create managers, view managers |
 
-Roles are assigned in Keycloak and embedded in the JWT. The `KeycloakJwtConverter` maps them to Spring Security authorities (`ROLE_USER`, `ROLE_BANKMANAGER`, `ROLE_ADMIN`).
+Roles are assigned in Keycloak and embedded in the JWT. `KeycloakJwtConverter` maps them to Spring Security authorities (`ROLE_USER`, `ROLE_BANKMANAGER`, `ROLE_ADMIN`).
 
 ## Endpoints
 
 ### Public / System
 
-| Method | URL | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/health` | Public | Returns `"UP"` |
-| GET | `/api/v1/info` | Public | App version, git branch, commit ID |
-
-### Registration
-
-| Method | URL | Access | Description |
-|---|---|---|---|
-| POST | `/api/v1/register` | Admin, BankManager | Creates Keycloak user + Customer DB record |
-
-**Request body:**
-```json
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
-  "pan": "ABCDE1234F",
-  "phoneNumber": "9876543210",
-  "username": "johndoe",
-  "temporaryPassword": "Pass@1234"
-}
-```
-
-On success → Keycloak user created with `temporary: true` password (forces password change on first login) + Customer record saved in DB.
-If DB save fails → Keycloak user is automatically rolled back (deleted).
+| Method | URL | Access |
+|---|---|---|
+| GET | `/api/v1/health` | Public |
+| GET | `/api/v1/info` | Public |
 
 ### Customers
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| GET | `/api/v1/customers` | Admin, BankManager | Get all customers |
+| POST | `/api/v2/customers` | Admin, BankManager | Create Keycloak account + Customer DB record atomically |
+| GET | `/api/v1/customers` | Admin, BankManager | List all customers |
 | GET | `/api/v1/customers/{id}` | Admin, BankManager | Get customer by ID |
-| POST | `/api/v1/customers` | Admin | Create customer (DB only) |
-| PUT | `/api/v1/customers/{id}` | Admin | Update customer |
+| PUT | `/api/v1/customers/{id}` | Admin | Update customer details |
 | DELETE | `/api/v1/customers/{id}` | Admin | Delete customer |
 
-### Accounts
+`POST /api/v2/customers` creates both the Keycloak user (with `user` role and temporary password) and the DB customer record in a single call. If the DB save fails, the Keycloak user is automatically rolled back.
 
-All account endpoints are unified — the response is filtered by the caller's role at runtime.
+### Managers
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/v1/managers` | Admin | List all BankManager accounts from Keycloak |
+| POST | `/api/v1/managers` | Admin | Create a Keycloak account with BankManager role |
+
+### Accounts
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
 | GET | `/api/v1/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
-| GET | `/api/v1/accounts/{id}` | Authenticated | Returns the account by ID |
+| GET | `/api/v1/accounts/{id}` | Authenticated | Get account by ID |
 | GET | `/api/v1/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
 | POST | `/api/v1/accounts` | Admin | Create account |
 | PUT | `/api/v1/accounts/{id}` | Admin | Update account |
@@ -86,23 +71,42 @@ All account endpoints are unified — the response is filtered by the caller's r
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only (ownership enforced) |
-| POST | `/api/v1/transactions` | Admin | Create a CREDIT or DEBIT transaction |
+| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only |
+| POST | `/api/v1/transactions` | Admin | Manual CREDIT or DEBIT adjustment |
 
 ### Beneficiaries
 
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
 | GET | `/api/v1/beneficiaries` | Authenticated | Staff + `?customerId=` → specific customer; User → own list |
-| POST | `/api/v1/beneficiaries` | Authenticated | Staff + `?customerId=` → add for customer; User → add to own list |
-| PUT | `/api/v1/beneficiaries/{id}` | Authenticated | Update nickname |
-| DELETE | `/api/v1/beneficiaries/{id}` | Authenticated | Staff → any; User → own beneficiaries only |
+| POST | `/api/v1/beneficiaries` | User only | Add to own beneficiary list |
+| PUT | `/api/v1/beneficiaries/{id}` | User only | Update nickname |
+| DELETE | `/api/v1/beneficiaries/{id}` | User only | Remove beneficiary |
+
+Staff can view beneficiaries but cannot add, edit, or delete them.
 
 ### Fund Transfer
 
 | Method | URL | Access | Description |
 |---|---|---|---|
-| POST | `/api/v1/transfer` | Authenticated | Transfer funds between accounts (sender resolved from JWT) |
+| POST | `/api/v2/transfer` | User only | Idempotent transfer — client provides a `paymentId` UUID as idempotency key |
+
+Idempotency: if a transfer with the same `paymentId` already completed, the cached result is returned. If it is still `PENDING`, a 409 is returned.
+
+### Payments
+
+| Method | URL | Access | Behaviour |
+|---|---|---|---|
+| GET | `/api/v1/payments` | Authenticated | Staff → all payments (optional `?accountId=`); User → own payments |
+
+Payment lifecycle: `PENDING` → `COMPLETED` / `FAILED`.
+
+### Profile
+
+| Method | URL | Access | Description |
+|---|---|---|---|
+| GET | `/api/v1/profile` | User only | Get own profile |
+| PUT | `/api/v1/profile` | User only | Update firstName, lastName, phoneNumber (email and PAN are read-only) |
 
 ## Global Exception Handling
 
@@ -117,29 +121,25 @@ All errors return a consistent JSON shape:
 }
 ```
 
-`GlobalExceptionHandler` (`@RestControllerAdvice`) intercepts every exception thrown from any controller.
-
-| Exception | Cause | HTTP Status |
-|---|---|---|
-| `ResourceNotFoundException` | Entity not found in DB | 404 |
-| `InsufficientBalanceException` | DEBIT exceeds account balance | 400 |
-| `MethodArgumentNotValidException` | `@Valid` check fails on request body | 400 |
-| `DataIntegrityViolationException` | Duplicate PAN / email, or value too long | 400 |
-| `HttpClientErrorException` (409) | Username or email already exists in Keycloak | 409 |
-| `RestClientException` | Cannot reach Keycloak | 502 |
-| `Exception` | Any other unexpected error | 500 |
+| Exception | HTTP Status |
+|---|---|
+| `ResourceNotFoundException` | 404 |
+| `InsufficientBalanceException` | 400 |
+| `MethodArgumentNotValidException` | 400 |
+| `DataIntegrityViolationException` | 400 |
+| `HttpClientErrorException` (409) | 409 |
+| `RestClientException` | 502 |
+| `Exception` | 500 |
 
 ## Project Structure
-
-The project is organised as a **modular monolith** — each domain owns its full vertical slice (controller → service → repository → entity → dto) inside its own package. Shared concerns (`exception`, `security`) live at the top level.
 
 ```
 src/main/java/com/riyaz/banficotrainingprogram/
 ├── BanficoTrainingProgramApplication.java
 │
 ├── customer/
-│   ├── controller/   CustomerController.java, RegistrationController.java
-│   ├── dto/          CustomerRequest/Response, RegisterRequest/Response
+│   ├── controller/   CustomerController.java, CustomerV2Controller.java, ManagerController.java, ProfileController.java
+│   ├── dto/          CustomerRequest/Response, RegisterRequest/Response, CreateManagerRequest/Response, ManagerResponse.java
 │   ├── entity/       Customer.java
 │   ├── repository/   CustomerRepo.java
 │   └── service/      CustomerService.java, KeycloakAdminService.java
@@ -163,11 +163,19 @@ src/main/java/com/riyaz/banficotrainingprogram/
 │
 ├── transaction/
 │   ├── controller/   TransactionController.java, TransferController.java
-│   ├── dto/          TransactionRequest/Response, TransferRequest/Response
+│   ├── dto/          TransactionRequest/Response, TransferRequest.java
 │   ├── entity/       Transactions.java
 │   ├── repository/   TransactionsRepo.java
 │   └── service/      TransactionService.java, TransferService.java
 │       └── impl/     TransactionServiceImpl.java, TransferServiceImpl.java
+│
+├── payment/
+│   ├── controller/   PaymentController.java
+│   ├── dto/          PaymentResponse.java
+│   ├── entity/       Payment.java, PaymentStatus.java
+│   ├── repository/   PaymentRepo.java
+│   └── service/      PaymentService.java
+│       └── impl/     PaymentServiceImpl.java
 │
 ├── system/
 │   ├── controller/   SystemController.java
@@ -187,60 +195,33 @@ src/main/java/com/riyaz/banficotrainingprogram/
     └── KeycloakJwtConverter.java   — extracts Keycloak roles from JWT
 ```
 
-## How Layers Work
-
-```
-Request → Controller → Service (interface) → ServiceImpl → Repository → DB
-                          ↑
-                     Business logic,
-                     Entity ↔ DTO mapping,
-                     exception throwing
-```
-
-- **Controller** — receives HTTP request, calls service, returns `ResponseEntity`
-- **Service interface** — defines the contract (what operations exist)
-- **ServiceImpl** — implements business rules (validation, balance checks, mapping)
-- **Repository** — extends `JpaRepository`; Spring generates all SQL automatically
-- **Entity** — maps to DB table via Hibernate; never sent directly to the client
-- **DTO** — plain classes for request input and response output; carries `@Valid` constraints
-
-## Technology Stack
-
-- Java 17
-- Spring Boot 4.1.0
-- Spring Web MVC
-- Spring Data JPA / Hibernate
-- Spring Security — OAuth2 Resource Server
-- Keycloak — Identity and access management
-- PostgreSQL (Neon DB in prod, Docker in dev)
-- Maven
-- Docker / Docker Compose
-
 ## Environment Variables
 
 | Variable | Description |
 |---|---|
-| `DB_URL` | JDBC connection URL (`jdbc:postgresql://...`) |
+| `DB_URL` | JDBC connection URL (e.g. `jdbc:postgresql://localhost:5432/bankapp`) |
 | `DB_USERNAME` | Database username |
 | `DB_PASSWORD` | Database password |
-| `KEYCLOAK_ISSUER_URI` | Keycloak realm URL (`http://keycloak:8080/realms/bankapp`) |
-| `KEYCLOAK_ADMIN_URL` | Keycloak base URL for Admin API |
+| `KEYCLOAK_JWK_URI` | Keycloak public key endpoint for JWT verification |
+| `KEYCLOAK_ADMIN_URL` | Keycloak base URL for Admin API calls |
 | `KEYCLOAK_ADMIN_USERNAME` | Master realm admin username |
 | `KEYCLOAK_ADMIN_PASSWORD` | Master realm admin password |
+
+Copy `.env.example` to `.env` and fill in your values.
 
 ## Running with Docker
 
 ```bash
-# Start all services (Keycloak, PostgreSQL, Spring Boot, Next.js)
+# From the SpringBOOOO/ directory (where docker-compose.yml lives)
 docker compose up --build -d
 
-# Rebuild Spring Boot only after code changes
-docker compose up --build -d app
+# Rebuild Spring Boot only
+docker compose up --build -d spring-boot
 ```
 
-Services:
-- Spring Boot API: `http://localhost:8081`
-- Keycloak: `http://localhost:8180`
+Services after startup:
+- Spring Boot API: `http://localhost:8080`
+- Keycloak admin console: `http://localhost:8180`
 - PostgreSQL: `localhost:5432`
 
 ## Author
