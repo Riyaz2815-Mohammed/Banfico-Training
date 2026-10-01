@@ -1,10 +1,7 @@
 package com.riyaz.banficotrainingprogram.transaction.controller;
 
-import com.riyaz.banficotrainingprogram.transaction.dto.TransactionRequest;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransactionResponse;
 import com.riyaz.banficotrainingprogram.transaction.service.TransactionService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -29,10 +26,5 @@ public class TransactionController {
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
         return ResponseEntity.ok(transactionService.getTransactions(accountId, jwt.getClaimAsString("email"), isStaff));
-    }
-
-    @PostMapping
-    public ResponseEntity<TransactionResponse> createTransaction(@Valid @RequestBody TransactionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.createTransaction(request.getAccountId(), request));
     }
 }
