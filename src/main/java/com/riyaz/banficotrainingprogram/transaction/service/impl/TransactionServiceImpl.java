@@ -1,12 +1,9 @@
 package com.riyaz.banficotrainingprogram.transaction.service.impl;
 
-import com.riyaz.banficotrainingprogram.account.entity.Account;
 import com.riyaz.banficotrainingprogram.account.repository.AccountRepo;
 import com.riyaz.banficotrainingprogram.customer.entity.Customer;
 import com.riyaz.banficotrainingprogram.customer.repository.CustomerRepo;
-import com.riyaz.banficotrainingprogram.exception.InsufficientBalanceException;
 import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
-import com.riyaz.banficotrainingprogram.transaction.dto.TransactionRequest;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransactionResponse;
 import com.riyaz.banficotrainingprogram.transaction.entity.Transactions;
 import com.riyaz.banficotrainingprogram.transaction.repository.TransactionsRepo;
@@ -27,20 +24,6 @@ public class TransactionServiceImpl implements TransactionService {
         this.transactionsRepo = transactionsRepo;
         this.accountRepo = accountRepo;
         this.customerRepo = customerRepo;
-    }
-
-    @Override
-    public TransactionResponse createTransaction(UUID accountId, TransactionRequest transaction) {
-        Account account = accountRepo.findById(accountId).orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
-        if (transaction.getType().equalsIgnoreCase("CREDIT")) {
-            account.setBalance(account.getBalance() + transaction.getAmount());
-        } else if (transaction.getType().equalsIgnoreCase("DEBIT")) {
-            if (account.getBalance() < transaction.getAmount()) throw new InsufficientBalanceException("Insufficient balance: available " + account.getBalance() + ", requested " + transaction.getAmount());
-            account.setBalance(account.getBalance() - transaction.getAmount());
-        }
-        accountRepo.save(account);
-        Transactions saved = transactionsRepo.save(new Transactions(transaction.getType(), transaction.getAmount(), LocalDateTime.now(), account, account.getBalance()));
-        return new TransactionResponse(saved.getId(), saved.getType(), saved.getAccount().getId(), saved.getBalanceAfter(), saved.getAmount(), saved.getTransactionTime(), saved.getDescription());
     }
 
     @Override
