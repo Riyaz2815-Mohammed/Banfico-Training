@@ -566,17 +566,21 @@
     },
     {
       "name": "Transactions",
-      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nTransactions are created automatically when a transfer completes — there is no manual creation endpoint.",
+      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response is Spring Page<TransactionResponse>. Total count also available via X-Total-Count response header.\n\nTransactions are created automatically when a transfer completes — there is no manual creation endpoint.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazSavingsAccountId}}",
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazSavingsAccountId}}&page=0&size=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "transactions"],
-              "query": [{ "key": "accountId", "value": "{{riyazSavingsAccountId}}" }]
+              "query": [
+                { "key": "accountId", "value": "{{riyazSavingsAccountId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
@@ -586,20 +590,42 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazCurrentAccountId}}",
+              "raw": "{{baseUrl}}/api/v1/transactions?accountId={{riyazCurrentAccountId}}&page=0&size=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "transactions"],
-              "query": [{ "key": "accountId", "value": "{{riyazCurrentAccountId}}" }]
+              "query": [
+                { "key": "accountId", "value": "{{riyazCurrentAccountId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
-        },
+        }
       ]
     },
     {
       "name": "Transfer (v2)",
-      "description": "POST /api/v2/transfer — user only. Idempotent: the client generates a UUID paymentId before sending. Re-sending the same paymentId returns the cached result instead of creating a duplicate.\n\nResponse is PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, note, status (COMPLETED/FAILED), initiatedByName, initiatedAt, completedAt, failureReason.",
+      "description": "GET /api/v2/transfer/preview — call before paying to get server-confirmed details (from balance, to account name, estimated timestamp).\n\nPOST /api/v2/transfer — user only. Idempotent: the client generates a UUID paymentId before sending. Re-sending the same paymentId returns the cached result instead of creating a duplicate.\n\nResponse is PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, note, status (COMPLETED/FAILED), initiatedByName, initiatedAt, completedAt, failureReason.",
       "item": [
+        {
+          "name": "Preview Transfer",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/transfer/preview?fromAccountId={{demoAccountId}}&recipientAccountNo={{recipientAccountNo}}&amount=500",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "transfer", "preview"],
+              "query": [
+                { "key": "fromAccountId", "value": "{{demoAccountId}}" },
+                { "key": "recipientAccountNo", "value": "{{recipientAccountNo}}" },
+                { "key": "amount", "value": "500" }
+              ]
+            },
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns server-confirmed preview: fromAccountNo, fromAccountBalance, toAccountNo, toAccountName, amount, estimatedAt. Call this before POST /api/v2/transfer to show the user a confirmation screen with server-authoritative data."
+          }
+        },
         {
           "name": "Transfer Money",
           "event": [
@@ -657,13 +683,21 @@
     },
     {
       "name": "Payments",
-      "description": "GET /api/v1/payments — admin and BankManager see all payments; user sees only their own.\n\nOptional query param ?accountId= lets staff filter payments for a specific account.\n\nEach payment has a status: PENDING, COMPLETED, or FAILED.",
+      "description": "GET /api/v1/payments — admin and BankManager see all payments; user sees only their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response is Spring Page<PaymentResponse>. Total count also available via X-Total-Count response header.\n\nOptional query param ?accountId= lets staff filter payments for a specific account.\n\nEach payment has a status: PENDING, COMPLETED, or FAILED.",
       "item": [
         {
           "name": "Get All Payments (admin / BankManager)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/payments",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "description": "Returns all payments across all customers when called with admin or BankManager token. Returns only the caller's own payments when called with a user token."
           }
@@ -673,10 +707,14 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/payments?accountId={{riyazSavingsAccountId}}",
+              "raw": "{{baseUrl}}/api/v1/payments?accountId={{riyazSavingsAccountId}}&page=0&size=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "payments"],
-              "query": [{ "key": "accountId", "value": "{{riyazSavingsAccountId}}" }]
+              "query": [
+                { "key": "accountId", "value": "{{riyazSavingsAccountId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
@@ -685,7 +723,15 @@
           "name": "Get My Payments (user)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/payments",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/payments?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "payments"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "description": "When called with a user token, returns only that user's own payments regardless of query params."
           }
