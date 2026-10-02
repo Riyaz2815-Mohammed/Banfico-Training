@@ -10,6 +10,7 @@ import com.riyaz.banficotrainingprogram.payment.dto.PaymentResponse;
 import com.riyaz.banficotrainingprogram.payment.entity.Payment;
 import com.riyaz.banficotrainingprogram.payment.entity.PaymentStatus;
 import com.riyaz.banficotrainingprogram.payment.repository.PaymentRepo;
+import com.riyaz.banficotrainingprogram.transaction.dto.TransferPreviewResponse;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransferRequest;
 import com.riyaz.banficotrainingprogram.transaction.entity.Transactions;
 import com.riyaz.banficotrainingprogram.transaction.repository.TransactionsRepo;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class TransferServiceImpl implements TransferService {
@@ -39,6 +41,16 @@ public class TransferServiceImpl implements TransferService {
     private PaymentResponse toPaymentResponse(Payment p) {
         String name = p.getInitiatedBy().getFirstName() + " " + p.getInitiatedBy().getLastName();
         return new PaymentResponse(p.getPaymentId(), p.getFromAccount().getAccountNo(), p.getToAccountNo(), p.getToAccountName(), p.getAmount(), p.getNote(), p.getStatus(), name, p.getInitiatedAt(), p.getCompletedAt(), p.getFailureReason());
+    }
+
+    @Override
+    public TransferPreviewResponse preview(String email, UUID fromAccountId, String recipientAccountNo, Integer amount) {
+        Customer sender = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+        Account fromAccount = accountRepo.findById(fromAccountId).orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + fromAccountId));
+        if (!fromAccount.getCustomer().getId().equals(sender.getId())) throw new ResourceNotFoundException("Account not found with id: " + fromAccountId);
+        Account toAccount = accountRepo.findByAccountNo(recipientAccountNo).orElseThrow(() -> new ResourceNotFoundException("No account found with number: " + recipientAccountNo));
+        if (fromAccount.getId().equals(toAccount.getId())) throw new InsufficientBalanceException("Cannot transfer to the same account");
+        return new TransferPreviewResponse(fromAccount.getAccountNo(), fromAccount.getBalance(), toAccount.getAccountNo(), toAccount.getCustomer().getFirstName() + " " + toAccount.getCustomer().getLastName(), amount, LocalDateTime.now());
     }
 
     @Override
