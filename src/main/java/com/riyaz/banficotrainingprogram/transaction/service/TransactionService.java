@@ -1,10 +1,11 @@
 package com.riyaz.banficotrainingprogram.transaction.service;
 
 import com.riyaz.banficotrainingprogram.transaction.dto.TransactionResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface TransactionService {
-    List<TransactionResponse> getTransactions(UUID accountId, String email, boolean isStaff);
+    Page<TransactionResponse> getTransactions(UUID accountId, String email, boolean isStaff, Pageable pageable);
 }
