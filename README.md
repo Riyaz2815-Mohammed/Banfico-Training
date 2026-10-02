@@ -23,7 +23,7 @@ Spring Boot acts as an **OAuth2 resource server** — it never stores passwords.
 | Role | Access |
 |---|---|
 | `user` | Own accounts, own transactions, own beneficiaries, transfers, own payments, own profile |
-| `BankManager` | All customers, all accounts, all transactions, all payments, register new users |
+| `BankManager` | All customers, all accounts (including opening new ones), all transactions, all payments, register new users |
 | `admin` | Everything — including delete, create managers, view managers |
 
 Roles are assigned in Keycloak and embedded in the JWT. `KeycloakJwtConverter` maps them to Spring Security authorities (`ROLE_USER`, `ROLE_BANKMANAGER`, `ROLE_ADMIN`).
@@ -63,15 +63,17 @@ Roles are assigned in Keycloak and embedded in the JWT. `KeycloakJwtConverter` m
 | GET | `/api/v1/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
 | GET | `/api/v1/accounts/{id}` | Authenticated | Get account by ID |
 | GET | `/api/v1/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
-| POST | `/api/v1/accounts` | Admin | Create account |
+| POST | `/api/v1/accounts` | Admin, BankManager | Open a new account for a customer |
 | PUT | `/api/v1/accounts/{id}` | Admin | Update account |
 | DELETE | `/api/v1/accounts/{id}` | Admin | Delete account |
 
 ### Transactions
 
+Paginated — supports `?page=0&size=20&sort=transactionTime,desc`. Default: 20 per page, newest first. Response header `X-Total-Count` carries the total record count.
+
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only |
+| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only. Paginated. |
 
 ### Beneficiaries
 
@@ -88,15 +90,18 @@ Staff can view beneficiaries but cannot add, edit, or delete them.
 
 | Method | URL | Access | Description |
 |---|---|---|---|
+| GET | `/api/v2/transfer/preview?fromAccountId=&recipientAccountNo=&amount=` | User only | Preview transfer — returns from account, recipient name, amount, estimated time for confirmation screen |
 | POST | `/api/v2/transfer` | User only | Idempotent transfer — client provides a `paymentId` UUID as idempotency key |
 
-Idempotency: if a transfer with the same `paymentId` already completed, the cached result is returned. If it is still `PENDING`, a 409 is returned.
+**Payment confirmation flow:** Call the preview endpoint first, show the customer "Send £X from ACC-XXXX to John Doe (ACC-001) at 14:32?", then POST to execute. Idempotency: if a transfer with the same `paymentId` already completed, the cached result is returned. If it is still `PENDING`, a 409 is returned.
 
 ### Payments
 
+Paginated — supports `?page=0&size=20&sort=initiatedAt,desc`. Default: 20 per page, newest first. Response header `X-Total-Count` carries the total record count.
+
 | Method | URL | Access | Behaviour |
 |---|---|---|---|
-| GET | `/api/v1/payments` | Authenticated | Staff → all payments (optional `?accountId=`); User → own payments |
+| GET | `/api/v1/payments` | Authenticated | Staff → all payments (optional `?accountId=`); User → own payments. Paginated. |
 | GET | `/api/v1/payments/{paymentId}` | Authenticated | Get a single payment by ID |
 
 Payment lifecycle: `PENDING` → `COMPLETED` / `FAILED`.
