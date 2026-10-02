@@ -2,6 +2,11 @@ package com.riyaz.banficotrainingprogram.payment.controller;
 
 import com.riyaz.banficotrainingprogram.payment.dto.PaymentResponse;
 import com.riyaz.banficotrainingprogram.payment.service.PaymentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,13 +26,17 @@ public class PaymentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PaymentResponse>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<PaymentResponse>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        if (isStaff && accountId != null) return ResponseEntity.ok(paymentService.getPaymentsByAccount(accountId));
-        if (isStaff) return ResponseEntity.ok(paymentService.getAllPayments());
-        return ResponseEntity.ok(paymentService.getMyPayments(jwt.getClaimAsString("email")));
+        Page<PaymentResponse> result;
+        if (isStaff && accountId != null) result = paymentService.getPaymentsByAccount(accountId, pageable);
+        else if (isStaff) result = paymentService.getAllPayments(pageable);
+        else result = paymentService.getMyPayments(jwt.getClaimAsString("email"), pageable);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
+        return ResponseEntity.ok().headers(headers).body(result);
     }
 
     @GetMapping("/{paymentId}")
