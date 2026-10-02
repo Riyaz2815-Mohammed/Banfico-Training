@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banfico Banking API — Product Reference</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #1a1a2e; }
+    header { background: #0f3460; color: #fff; padding: 28px 40px; }
+    header h1 { font-size: 1.8rem; font-weight: 700; }
+    header p { margin-top: 6px; opacity: 0.75; font-size: 0.95rem; }
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+    .section { margin-bottom: 48px; }
+    .section h2 { font-size: 1.25rem; font-weight: 700; color: #0f3460; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 20px; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    thead tr { background: #0f3460; color: #fff; position: sticky; top: 0; z-index: 1; }
+    th, td { padding: 12px 16px; text-align: left; font-size: 0.875rem; }
+    td { border-bottom: 1px solid #f0f0f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8faff; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .get    { background: #d1fae5; color: #065f46; }
+    .post   { background: #dbeafe; color: #1e40af; }
+    .put    { background: #fef3c7; color: #92400e; }
+    .delete { background: #fee2e2; color: #991b1b; }
+
+    .roles { display: flex; gap: 6px; flex-wrap: wrap; }
+    .role { padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+    .role-admin   { background: #ede9fe; color: #5b21b6; }
+    .role-manager { background: #fce7f3; color: #831843; }
+    .role-user    { background: #d1fae5; color: #065f46; }
+    .role-public  { background: #f3f4f6; color: #374151; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #0f3460; }
+    .card p, .card ul { font-size: 0.85rem; color: #4b5563; line-height: 1.6; }
+    .card ul { padding-left: 18px; }
+
+    code { font-family: "SFMono-Regular", Consolas, monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
+    pre { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 20px; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Banfico Banking API</h1>
+  <p>Spring Boot · Keycloak JWT · PostgreSQL &nbsp;|&nbsp; Base URL: <code style="background:rgba(255,255,255,.15);color:#fff">http://localhost:8080</code></p>
+</header>
+
+<main>
+
+  <!-- Roles -->
+  <div class="section">
+    <h2>Roles</h2>
+    <div class="info-grid">
+      <div class="card">
+        <h3>admin</h3>
+        <ul>
+          <li>Full access to everything</li>
+          <li>Create / delete managers</li>
+          <li>Delete accounts and customers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>BankManager</h3>
+        <ul>
+          <li>Register new customers</li>
+          <li>Open (create) accounts</li>
+          <li>View all customers, accounts, transactions, payments</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>user (customer)</h3>
+        <ul>
+          <li>Own accounts &amp; transactions only</li>
+          <li>Add / manage own beneficiaries</li>
+          <li>Make transfers (payments)</li>
+          <li>View own payments</li>
+          <li>Edit own profile</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Public</h3>
+        <ul>
+          <li><code>GET /api/v1/health</code></li>
+          <li><code>GET /api/v1/info</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- System -->
+  <div class="section">
+    <h2>System</h2>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/health</code></td><td><span class="roles"><span class="role role-public">Public</span></span></td><td>Health check</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/info</code></td><td><span class="roles"><span class="role role-public">Public</span></span></td><td>Build &amp; git info</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Customers -->
+  <div class="section">
+    <h2>Customers</h2>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge post">POST</span></td><td><code>/api/v2/customers</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Create Keycloak account + DB customer record atomically</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/customers</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>List all customers</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Get customer by ID</td></tr>
+        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Update customer details</td></tr>
+        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Delete customer</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Managers -->
+  <div class="section">
+    <h2>Managers</h2>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/managers</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>List all BankManager accounts from Keycloak</td></tr>
+        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/managers</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Create a Keycloak account with BankManager role</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Accounts -->
+  <div class="section">
+    <h2>Accounts</h2>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → all accounts; User → own accounts only</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts/lookup?accountNo=</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Look up account holder name by account number (for transfer confirmation)</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Get account by ID</td></tr>
+        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/accounts</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Open a new account for a customer</td></tr>
+        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Update account</td></tr>
+        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Delete account</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Beneficiaries -->
+  <div class="section">
+    <h2>Beneficiaries</h2>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Only customers (USER role) can add, edit, or remove beneficiaries. Staff can view but not modify.</p>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/beneficiaries</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff + <code>?customerId=</code> → that customer's list; User → own list</td></tr>
+        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/beneficiaries</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Add beneficiary to own list</td></tr>
+        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Update nickname</td></tr>
+        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Remove from own list</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Transfer (Payments) -->
+  <div class="section">
+    <h2>Fund Transfer</h2>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Only customers (USER role) can transfer. The preview step lets you confirm details before paying. The POST is idempotent — resending the same <code>paymentId</code> UUID never double-charges.</p>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge get">GET</span></td>
+          <td><code>/api/v2/transfer/preview?fromAccountId=&amp;recipientAccountNo=&amp;amount=</code></td>
+          <td><span class="roles"><span class="role role-user">User</span></span></td>
+          <td>Preview: returns from account, to account holder name, amount, estimated time — show to customer before they confirm</td>
+        </tr>
+        <tr>
+          <td><span class="badge post">POST</span></td>
+          <td><code>/api/v2/transfer</code></td>
+          <td><span class="roles"><span class="role role-user">User</span></span></td>
+          <td>Execute transfer. Client provides a <code>paymentId</code> UUID. If already COMPLETED → returns cached result. If PENDING → 409.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:16px">
+      <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:8px;color:#374151">Payment confirmation flow</h3>
+      <pre>1. GET /api/v2/transfer/preview?fromAccountId=&lt;id&gt;&recipientAccountNo=ACC-001&amount=500
+   → { fromAccountNo, fromAccountBalance, toAccountNo, toAccountName, amount, estimatedAt }
+
+2. Show customer: "Send £500 from ACC-XXXX to John Doe (ACC-001) at 14:32?"
+
+3. POST /api/v2/transfer  { paymentId: &lt;new-uuid&gt;, fromAccountId, recipientAccountNo, amount, note }
+   → PaymentResponse with status COMPLETED / FAILED</pre>
+    </div>
+  </div>
+
+  <!-- Payments List -->
+  <div class="section">
+    <h2>Payment History</h2>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">All list endpoints support pagination: <code>?page=0&amp;size=20&amp;sort=initiatedAt,desc</code>. The response header <code>X-Total-Count</code> carries the total number of records.</p>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/payments</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → all (optional <code>?accountId=</code>); User → own. Paginated.</td></tr>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/payments/{paymentId}</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Get single payment by ID</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Transactions -->
+  <div class="section">
+    <h2>Transactions</h2>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Returns all debit/credit entries for an account. Supports pagination: <code>?page=0&amp;size=20</code>. Default sort: newest first. <code>X-Total-Count</code> in response headers.</p>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/transactions?accountId=</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → any account; User → own accounts only. Paginated.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Profile -->
+  <div class="section">
+    <h2>Profile</h2>
+    <table>
+      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/profile</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Get own profile</td></tr>
+        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Update firstName, lastName, phoneNumber (email &amp; PAN are read-only)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Error format -->
+  <div class="section">
+    <h2>Error Response Format</h2>
+    <pre>{
+  "status": 400,
+  "error": "Invalid Data",
+  "message": "A customer with this email or PAN already exists.",
+  "timestamp": "2026-09-08T10:00:00"
+}</pre>
+    <table style="margin-top:16px">
+      <thead><tr><th>Exception</th><th>HTTP Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>ResourceNotFoundException</code></td><td>404 Not Found</td></tr>
+        <tr><td><code>InsufficientBalanceException</code></td><td>400 Bad Request</td></tr>
+        <tr><td><code>MethodArgumentNotValidException</code></td><td>400 Bad Request</td></tr>
+        <tr><td><code>DataIntegrityViolationException</code></td><td>400 Bad Request</td></tr>
+        <tr><td>Keycloak conflict (409)</td><td>409 Conflict</td></tr>
+        <tr><td><code>RestClientException</code></td><td>502 Bad Gateway</td></tr>
+        <tr><td>Everything else</td><td>500 Internal Server Error</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="section">
+    <h2>Pagination</h2>
+    <div class="info-grid">
+      <div class="card">
+        <h3>Request params</h3>
+        <ul>
+          <li><code>page</code> — zero-based page number (default 0)</li>
+          <li><code>size</code> — items per page (default 20)</li>
+          <li><code>sort</code> — field,direction e.g. <code>transactionTime,desc</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Response</h3>
+        <ul>
+          <li>Body: <code>{ content: [...], totalElements, totalPages, number, size }</code></li>
+          <li>Header: <code>X-Total-Count: 150</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Paginated endpoints</h3>
+        <ul>
+          <li><code>GET /api/v1/transactions</code></li>
+          <li><code>GET /api/v1/payments</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>
