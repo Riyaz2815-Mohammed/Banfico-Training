@@ -2,6 +2,11 @@ package com.riyaz.banficotrainingprogram.transaction.controller;
 
 import com.riyaz.banficotrainingprogram.transaction.dto.TransactionResponse;
 import com.riyaz.banficotrainingprogram.transaction.service.TransactionService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,10 +26,13 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TransactionResponse>> getTransactions(@RequestParam UUID accountId, @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<TransactionResponse>> getTransactions(@RequestParam UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "transactionTime", direction = Sort.Direction.DESC) Pageable pageable) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        return ResponseEntity.ok(transactionService.getTransactions(accountId, jwt.getClaimAsString("email"), isStaff));
+        Page<TransactionResponse> result = transactionService.getTransactions(accountId, jwt.getClaimAsString("email"), isStaff, pageable);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
+        return ResponseEntity.ok().headers(headers).body(result);
     }
 }
