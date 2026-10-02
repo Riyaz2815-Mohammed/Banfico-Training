@@ -6,9 +6,12 @@ import com.riyaz.banficotrainingprogram.payment.dto.PaymentResponse;
 import com.riyaz.banficotrainingprogram.payment.entity.Payment;
 import com.riyaz.banficotrainingprogram.payment.repository.PaymentRepo;
 import com.riyaz.banficotrainingprogram.payment.service.PaymentService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -27,19 +30,20 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public List<PaymentResponse> getAllPayments() {
-        return paymentRepo.findAllByOrderByInitiatedAtDesc().stream().map(this::toResponse).toList();
+    public Page<PaymentResponse> getAllPayments(Pageable pageable) {
+        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by("initiatedAt").descending()));
+        return paymentRepo.findAll(sorted).map(this::toResponse);
     }
 
     @Override
-    public List<PaymentResponse> getPaymentsByAccount(UUID accountId) {
-        return paymentRepo.findByFromAccount_Id(accountId).stream().map(this::toResponse).toList();
+    public Page<PaymentResponse> getPaymentsByAccount(UUID accountId, Pageable pageable) {
+        return paymentRepo.findByFromAccount_Id(accountId, pageable).map(this::toResponse);
     }
 
     @Override
-    public List<PaymentResponse> getMyPayments(String email) {
+    public Page<PaymentResponse> getMyPayments(String email, Pageable pageable) {
         var customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
-        return paymentRepo.findByInitiatedBy_Id(customer.getId()).stream().map(this::toResponse).toList();
+        return paymentRepo.findByInitiatedBy_Id(customer.getId(), pageable).map(this::toResponse);
     }
 
     @Override
