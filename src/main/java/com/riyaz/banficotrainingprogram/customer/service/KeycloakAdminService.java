@@ -1,5 +1,7 @@
 package com.riyaz.banficotrainingprogram.customer.service;
 
+import com.riyaz.banficotrainingprogram.customer.dto.CreateManagerResponse;
+import com.riyaz.banficotrainingprogram.customer.dto.ManagerResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -30,11 +32,9 @@ public class KeycloakAdminService {
 
     public String createUser(String username, String email, String firstName, String lastName, String temporaryPassword) {
         String token = getAdminToken();
-
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         headers.setContentType(MediaType.APPLICATION_JSON);
-
         Map<String, Object> user = new HashMap<>();
         user.put("username", username);
         user.put("email", email);
@@ -42,50 +42,24 @@ public class KeycloakAdminService {
         user.put("lastName", lastName);
         user.put("enabled", true);
         user.put("emailVerified", true);
-
-        ResponseEntity<Void> createResp = restTemplate.postForEntity(
-                adminUrl + "/admin/realms/" + realm + "/users",
-                new HttpEntity<>(user, headers),
-                Void.class
-        );
-
+        ResponseEntity<Void> createResp = restTemplate.postForEntity(adminUrl + "/admin/realms/" + realm + "/users", new HttpEntity<>(user, headers), Void.class);
         String location = createResp.getHeaders().getFirst("Location");
         String userId = location.substring(location.lastIndexOf('/') + 1);
-
         Map<String, Object> credential = new HashMap<>();
         credential.put("type", "password");
         credential.put("value", temporaryPassword);
         credential.put("temporary", true);
-
-        restTemplate.exchange(
-                adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password",
-                HttpMethod.PUT,
-                new HttpEntity<>(credential, headers),
-                Void.class
-        );
-
-        ResponseEntity<Map> roleResp = restTemplate.exchange(
-                adminUrl + "/admin/realms/" + realm + "/roles/user",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                Map.class
-        );
-
-        restTemplate.postForEntity(
-                adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm",
-                new HttpEntity<>(List.of(roleResp.getBody()), headers),
-                Void.class
-        );
-
+        restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password", HttpMethod.PUT, new HttpEntity<>(credential, headers), Void.class);
+        ResponseEntity<Map> roleResp = restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/roles/user", HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+        restTemplate.postForEntity(adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm", new HttpEntity<>(List.of(roleResp.getBody()), headers), Void.class);
         return userId;
     }
 
-    public String createManager(String username, String email, String firstName, String lastName, String temporaryPassword) {
+    public CreateManagerResponse createManager(String username, String email, String firstName, String lastName, String temporaryPassword) {
         String token = getAdminToken();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         headers.setContentType(MediaType.APPLICATION_JSON);
-
         Map<String, Object> user = new HashMap<>();
         user.put("username", username);
         user.put("email", email);
@@ -93,62 +67,46 @@ public class KeycloakAdminService {
         user.put("lastName", lastName);
         user.put("enabled", true);
         user.put("emailVerified", true);
-
         ResponseEntity<Void> createResp = restTemplate.postForEntity(adminUrl + "/admin/realms/" + realm + "/users", new HttpEntity<>(user, headers), Void.class);
         String location = createResp.getHeaders().getFirst("Location");
         String userId = location.substring(location.lastIndexOf('/') + 1);
-
         Map<String, Object> credential = new HashMap<>();
         credential.put("type", "password");
         credential.put("value", temporaryPassword);
         credential.put("temporary", true);
-
         restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/reset-password", HttpMethod.PUT, new HttpEntity<>(credential, headers), Void.class);
-
         ResponseEntity<Map> roleResp = restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/roles/BankManager", HttpMethod.GET, new HttpEntity<>(headers), Map.class);
         restTemplate.postForEntity(adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm", new HttpEntity<>(List.of(roleResp.getBody()), headers), Void.class);
-
-        return userId;
+        return new CreateManagerResponse(userId, username, email, firstName, lastName);
     }
 
     @SuppressWarnings("unchecked")
-    public List<Map> getManagers() {
+    public List<ManagerResponse> getManagers() {
         String token = getAdminToken();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         ResponseEntity<List> resp = restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/roles/BankManager/users", HttpMethod.GET, new HttpEntity<>(headers), List.class);
-        return resp.getBody() != null ? resp.getBody() : List.of();
+        List<Map> users = resp.getBody() != null ? resp.getBody() : List.of();
+        return users.stream().map(u -> new ManagerResponse((String) u.get("id"), (String) u.get("username"), (String) u.get("email"), (String) u.get("firstName"), (String) u.get("lastName"))).toList();
     }
 
     public void deleteUser(String userId) {
         String token = getAdminToken();
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
-        restTemplate.exchange(
-                adminUrl + "/admin/realms/" + realm + "/users/" + userId,
-                HttpMethod.DELETE,
-                new HttpEntity<>(headers),
-                Void.class
-        );
+        restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users/" + userId, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
     }
 
     @SuppressWarnings("unchecked")
     private String getAdminToken() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "password");
         body.add("client_id", "admin-cli");
         body.add("username", adminUsername);
         body.add("password", adminPassword);
-
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                adminUrl + "/realms/master/protocol/openid-connect/token",
-                new HttpEntity<>(body, headers),
-                Map.class
-        );
-
+        ResponseEntity<Map> response = restTemplate.postForEntity(adminUrl + "/realms/master/protocol/openid-connect/token", new HttpEntity<>(body, headers), Map.class);
         return (String) response.getBody().get("access_token");
     }
 }
