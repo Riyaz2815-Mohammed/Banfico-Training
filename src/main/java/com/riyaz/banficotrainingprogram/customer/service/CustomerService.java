@@ -14,7 +14,7 @@ public interface CustomerService {
     CustomerResponse getCustomerById(UUID id);
     CustomerResponse updateCustomer(UUID id, CustomerRequest request);
     void deleteCustomer(UUID id);
-    RegisterResponse registerCustomer(RegisterRequest request, String keycloakUserId);
+    RegisterResponse registerCustomerWithKeycloak(RegisterRequest request);
     CustomerResponse getMyProfile(String email);
     CustomerResponse updateMyProfile(String email, CustomerRequest request);
 }
