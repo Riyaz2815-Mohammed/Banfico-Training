@@ -27,10 +27,7 @@ public class BeneficiaryController {
     public ResponseEntity<List<BeneficiaryResponse>> getBeneficiaries(@RequestParam(required = false) UUID customerId, @AuthenticationPrincipal Jwt jwt) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        if (isStaff && customerId != null) return ResponseEntity.ok(beneficiaryService.getBeneficiaries(customerId));
-        if (isStaff) return ResponseEntity.ok(beneficiaryService.getAllBeneficiaries());
-        return ResponseEntity.ok(beneficiaryService.getMyBeneficiaries(jwt.getClaimAsString("email")));
+        return ResponseEntity.ok(beneficiaryService.getBeneficiaries(jwt.getClaimAsString("email"), customerId, roles.contains("admin") || roles.contains("BankManager")));
     }
 
     @PostMapping
