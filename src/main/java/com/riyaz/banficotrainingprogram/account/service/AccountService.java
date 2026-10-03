@@ -9,8 +9,7 @@ import java.util.UUID;
 
 public interface AccountService {
     AccountResponse createAccount(AccountRequest accountRequest);
-    List<AccountResponse> getAccounts();
-    List<AccountResponse> getMyAccounts(String email);
+    List<AccountResponse> getAccounts(String email, boolean isStaff);
     AccountResponse getAccount(UUID accountId);
     AccountResponse updateAccount(UUID id, AccountRequest accountRequest);
     void deleteAccount(UUID accountId);
