@@ -28,9 +28,7 @@ public class AccountController {
     public ResponseEntity<List<AccountResponse>> getAccounts(@AuthenticationPrincipal Jwt jwt) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        if (isStaff) return ResponseEntity.ok(accountService.getAccounts());
-        return ResponseEntity.ok(accountService.getMyAccounts(jwt.getClaimAsString("email")));
+        return ResponseEntity.ok(accountService.getAccounts(jwt.getClaimAsString("email"), roles.contains("admin") || roles.contains("BankManager")));
     }
 
     @GetMapping("/lookup")
