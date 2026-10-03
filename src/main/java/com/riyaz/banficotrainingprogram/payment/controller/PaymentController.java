@@ -29,11 +29,7 @@ public class PaymentController {
     public ResponseEntity<Page<PaymentResponse>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
-        Page<PaymentResponse> result;
-        if (isStaff && accountId != null) result = paymentService.getPaymentsByAccount(accountId, pageable);
-        else if (isStaff) result = paymentService.getAllPayments(pageable);
-        else result = paymentService.getMyPayments(jwt.getClaimAsString("email"), pageable);
+        Page<PaymentResponse> result = paymentService.getPayments(jwt.getClaimAsString("email"), accountId, roles.contains("admin") || roles.contains("BankManager"), pageable);
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
         return ResponseEntity.ok().headers(headers).body(result);
