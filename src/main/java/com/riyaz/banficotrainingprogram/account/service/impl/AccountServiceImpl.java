@@ -39,12 +39,8 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public List<AccountResponse> getAccounts() {
-        return accountRepo.findAll().stream().map(account -> new AccountResponse(account.getId(), account.getAccountNo(), account.getAccountType(), account.getBalance(), account.getCustomer().getId(), account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName())).toList();
-    }
-
-    @Override
-    public List<AccountResponse> getMyAccounts(String email) {
+    public List<AccountResponse> getAccounts(String email, boolean isStaff) {
+        if (isStaff) return accountRepo.findAll().stream().map(account -> new AccountResponse(account.getId(), account.getAccountNo(), account.getAccountType(), account.getBalance(), account.getCustomer().getId(), account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName())).toList();
         Customer customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
         return accountRepo.findByCustomerId(customer.getId()).stream().map(account -> new AccountResponse(account.getId(), account.getAccountNo(), account.getAccountType(), account.getBalance(), account.getCustomer().getId(), account.getCustomer().getFirstName() + " " + account.getCustomer().getLastName())).toList();
     }
