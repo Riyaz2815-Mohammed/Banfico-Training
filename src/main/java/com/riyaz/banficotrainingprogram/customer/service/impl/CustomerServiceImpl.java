@@ -10,6 +10,7 @@ import com.riyaz.banficotrainingprogram.customer.dto.RegisterResponse;
 import com.riyaz.banficotrainingprogram.customer.entity.Customer;
 import com.riyaz.banficotrainingprogram.customer.repository.CustomerRepo;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
+import com.riyaz.banficotrainingprogram.customer.service.KeycloakAdminService;
 import com.riyaz.banficotrainingprogram.exception.ResourceNotFoundException;
 import com.riyaz.banficotrainingprogram.transaction.repository.TransactionsRepo;
 import jakarta.transaction.Transactional;
@@ -24,12 +25,14 @@ public class CustomerServiceImpl implements CustomerService {
     private final AccountRepo accountRepo;
     private final TransactionsRepo transactionsRepo;
     private final BeneficiaryRepo beneficiaryRepo;
+    private final KeycloakAdminService keycloakAdminService;
 
-    public CustomerServiceImpl(CustomerRepo customerRepo, AccountRepo accountRepo, TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo) {
+    public CustomerServiceImpl(CustomerRepo customerRepo, AccountRepo accountRepo, TransactionsRepo transactionsRepo, BeneficiaryRepo beneficiaryRepo, KeycloakAdminService keycloakAdminService) {
         this.customerRepo = customerRepo;
         this.accountRepo = accountRepo;
         this.transactionsRepo = transactionsRepo;
         this.beneficiaryRepo = beneficiaryRepo;
+        this.keycloakAdminService = keycloakAdminService;
     }
 
     @Override
@@ -76,9 +79,15 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public RegisterResponse registerCustomer(RegisterRequest request, String keycloakUserId) {
-        Customer saved = customerRepo.save(new Customer(request.getPan(), request.getFirstName(), request.getLastName(), request.getEmail(), request.getPhoneNumber()));
-        return new RegisterResponse(saved.getId(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPan(), saved.getPhoneNumber(), keycloakUserId);
+    public RegisterResponse registerCustomerWithKeycloak(RegisterRequest request) {
+        String keycloakUserId = keycloakAdminService.createUser(request.getUsername(), request.getEmail(), request.getFirstName(), request.getLastName(), request.getTemporaryPassword());
+        try {
+            Customer saved = customerRepo.save(new Customer(request.getPan(), request.getFirstName(), request.getLastName(), request.getEmail(), request.getPhoneNumber()));
+            return new RegisterResponse(saved.getId(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPan(), saved.getPhoneNumber(), keycloakUserId);
+        } catch (Exception dbEx) {
+            try { keycloakAdminService.deleteUser(keycloakUserId); } catch (Exception ignored) {}
+            throw dbEx;
+        }
     }
 
     @Override
