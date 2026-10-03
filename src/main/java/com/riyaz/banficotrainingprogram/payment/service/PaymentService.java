@@ -7,8 +7,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface PaymentService {
-    Page<PaymentResponse> getAllPayments(Pageable pageable);
-    Page<PaymentResponse> getPaymentsByAccount(UUID accountId, Pageable pageable);
-    Page<PaymentResponse> getMyPayments(String email, Pageable pageable);
+    Page<PaymentResponse> getPayments(String email, UUID accountId, boolean isStaff, Pageable pageable);
     PaymentResponse getPayment(UUID paymentId);
 }
