@@ -7,9 +7,9 @@ import com.riyaz.banficotrainingprogram.payment.entity.Payment;
 import com.riyaz.banficotrainingprogram.payment.repository.PaymentRepo;
 import com.riyaz.banficotrainingprogram.payment.service.PaymentService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -30,18 +30,9 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public Page<PaymentResponse> getAllPayments(Pageable pageable) {
-        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by("initiatedAt").descending()));
-        return paymentRepo.findAll(sorted).map(this::toResponse);
-    }
-
-    @Override
-    public Page<PaymentResponse> getPaymentsByAccount(UUID accountId, Pageable pageable) {
-        return paymentRepo.findByFromAccount_Id(accountId, pageable).map(this::toResponse);
-    }
-
-    @Override
-    public Page<PaymentResponse> getMyPayments(String email, Pageable pageable) {
+    public Page<PaymentResponse> getPayments(String email, UUID accountId, boolean isStaff, Pageable pageable) {
+        if (isStaff && accountId != null) return paymentRepo.findByFromAccount_Id(accountId, pageable).map(this::toResponse);
+        if (isStaff) return paymentRepo.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSortOr(Sort.by("initiatedAt").descending()))).map(this::toResponse);
         var customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
         return paymentRepo.findByInitiatedBy_Id(customer.getId(), pageable).map(this::toResponse);
     }
