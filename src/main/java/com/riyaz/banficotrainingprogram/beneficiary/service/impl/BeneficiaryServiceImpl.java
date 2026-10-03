@@ -32,17 +32,9 @@ public class BeneficiaryServiceImpl implements BeneficiaryService {
     }
 
     @Override
-    public List<BeneficiaryResponse> getAllBeneficiaries() {
-        return beneficiaryRepo.findAll().stream().map(this::toResponse).toList();
-    }
-
-    @Override
-    public List<BeneficiaryResponse> getBeneficiaries(UUID customerId) {
-        return beneficiaryRepo.findByCustomerId(customerId).stream().map(this::toResponse).toList();
-    }
-
-    @Override
-    public List<BeneficiaryResponse> getMyBeneficiaries(String email) {
+    public List<BeneficiaryResponse> getBeneficiaries(String email, UUID customerId, boolean isStaff) {
+        if (isStaff && customerId != null) return beneficiaryRepo.findByCustomerId(customerId).stream().map(this::toResponse).toList();
+        if (isStaff) return beneficiaryRepo.findAll().stream().map(this::toResponse).toList();
         Customer customer = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
         return beneficiaryRepo.findByCustomerId(customer.getId()).stream().map(this::toResponse).toList();
     }
