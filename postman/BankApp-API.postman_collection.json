@@ -1,11 +1,12 @@
 {
   "info": {
     "name": "BankApp API",
-    "description": "All BankApp Spring Boot endpoints.\n\nApiResponse<T> wrapper — every response (success AND error) is enveloped:\n  { \"status\": 200, \"message\": \"...\", \"data\": <payload>, \"timestamp\": \"...\" }\nAll test scripts unwrap via json.data. Error responses set data: null.\n\nImport the matching environment file to fill in {{clientSecret}} and password variables before running.",
+    "description": "All BankApp Spring Boot endpoints.\n\nApiResponse<T> wrapper — every response (success AND error) is enveloped:\n  { \"status\": 200, \"message\": \"...\", \"data\": <payload>, \"timestamp\": \"...\" }\nAll test scripts unwrap via json.data. Error responses set data: null.\n\n── TWO TESTING MODES ──\n\nMode 1 — Full gateway flow (default, recommended)\n  All requests go to {{baseUrl}} (https://localhost).\n  Get a token via Auth → Get Token, then use Bearer {{token}} in every request.\n  nginx validates the JWT, injects X-User-* headers, and forwards to Spring Boot.\n\nMode 2 — Direct Spring Boot (dev bypass, no nginx needed)\n  Requests go to {{directUrl}} (http://localhost:8080) — requires port 8080 exposed in docker-compose.\n  No Bearer token needed. Instead, add X-User-Email and X-User-Roles headers manually.\n  Spring Boot's GatewayAuthenticationFilter reads those headers directly.\n  See the 'Dev — Direct Spring Boot' folder for ready-made requests.\n\nImport the matching environment file to fill in {{clientSecret}} and password variables before running.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "baseUrl", "value": "https://localhost" },
+    { "key": "directUrl", "value": "http://localhost:8080", "description": "Direct Spring Boot URL (Mode 2 — bypass nginx). Requires port 8080 exposed in docker-compose." },
     { "key": "keycloakUrl", "value": "https://localhost/auth" },
     { "key": "realm", "value": "bankapp" },
     { "key": "token", "value": "" },
@@ -369,6 +370,105 @@
         {
           "name": "App Info",
           "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/info" }
+        }
+      ]
+    },
+    {
+      "name": "Dev — Direct Spring Boot (bypass nginx)",
+      "description": "MODE 2 TESTING — hits Spring Boot directly on {{directUrl}} (http://localhost:8080).\n\nRequirements:\n  1. Add 'ports: - \"8080:8080\"' under spring-boot-1 in docker-compose.yml\n  2. docker compose up --build -d\n\nHow it works:\n  No JWT or Bearer token is needed. The GatewayAuthenticationFilter in Spring Boot reads X-User-Email and X-User-Roles headers directly and builds the SecurityContext from them.\n  This is the same code path nginx uses — the only difference is nginx populates those headers automatically after verifying the JWT, whereas here you set them manually.\n\nSecurity note: this is only safe for local dev. In production Spring Boot is not port-exposed — only nginx can reach it, so nobody can forge these headers from outside.",
+      "item": [
+        {
+          "name": "Health Check (no auth)",
+          "request": {
+            "method": "GET",
+            "url": "{{directUrl}}/api/v1/health",
+            "description": "Verify Spring Boot is reachable on port 8080. No headers needed — this endpoint is public."
+          }
+        },
+        {
+          "name": "Get Accounts — as User (priya)",
+          "request": {
+            "method": "GET",
+            "url": "{{directUrl}}/api/v1/accounts",
+            "header": [
+              { "key": "X-User-Email", "value": "priya@bankapp.com", "description": "Maps to auth.getPrincipal() in controllers" },
+              { "key": "X-User-Roles", "value": "USER", "description": "Becomes ROLE_USER — user sees own accounts only" },
+              { "key": "X-User-Sub",   "value": "priya-test-sub" }
+            ],
+            "description": "Returns only Priya's accounts because X-User-Roles: USER triggers the isStaff=false branch in AccountController. Change X-User-Email to any seeded user's email."
+          }
+        },
+        {
+          "name": "Get Accounts — as Admin (riyaz)",
+          "request": {
+            "method": "GET",
+            "url": "{{directUrl}}/api/v1/accounts",
+            "header": [
+              { "key": "X-User-Email", "value": "riyaz@bankapp.com" },
+              { "key": "X-User-Roles", "value": "ADMIN,USER", "description": "Becomes ROLE_ADMIN + ROLE_USER — admin sees all accounts" },
+              { "key": "X-User-Sub",   "value": "riyaz-test-sub" }
+            ],
+            "description": "Returns all accounts because X-User-Roles contains ADMIN. Admin/BankManager sees bank-wide data."
+          }
+        },
+        {
+          "name": "Get Transactions — as User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{directUrl}}/api/v1/transactions?accountId={{demoAccountId}}&page=0&size=20",
+              "host": ["{{directUrl}}"],
+              "path": ["api", "v1", "transactions"],
+              "query": [
+                { "key": "accountId", "value": "{{demoAccountId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
+            "header": [
+              { "key": "X-User-Email", "value": "priya@bankapp.com" },
+              { "key": "X-User-Roles", "value": "USER" }
+            ]
+          }
+        },
+        {
+          "name": "Register Customer — as BankManager",
+          "request": {
+            "method": "POST",
+            "url": "{{directUrl}}/api/v2/customers",
+            "header": [
+              { "key": "X-User-Email",   "value": "manager@bankapp.com" },
+              { "key": "X-User-Roles",   "value": "BANKMANAGER" },
+              { "key": "Content-Type",   "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Dev\",\n  \"lastName\": \"Test\",\n  \"email\": \"devtest@bankapp.com\",\n  \"pan\": \"DEVTE1234X\",\n  \"phoneNumber\": \"9000000001\",\n  \"username\": \"devtest\",\n  \"temporaryPassword\": \"DevTest@1\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 5000\n}"
+            },
+            "description": "Creates Keycloak user + Customer DB record + Account atomically. X-User-Roles: BANKMANAGER passes the hasAnyRole(ADMIN, BANKMANAGER) check in SecurityConfig."
+          }
+        },
+        {
+          "name": "Transfer Money — as User",
+          "event": [
+            { "listen": "prerequest", "script": { "exec": [
+              "const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });",
+              "pm.collectionVariables.set('paymentId', uuid);"
+            ]}}
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{directUrl}}/api/v2/transfer",
+            "header": [
+              { "key": "X-User-Email",  "value": "priya@bankapp.com" },
+              { "key": "X-User-Roles",  "value": "USER" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 100,\n  \"note\": \"Dev test transfer\"\n}"
+            }
+          }
         }
       ]
     },
