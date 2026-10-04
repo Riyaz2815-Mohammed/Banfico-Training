@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.system.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.system.dto.HealthResponse;
 import com.riyaz.banficotrainingprogram.system.dto.InfoResponse;
 import com.riyaz.banficotrainingprogram.system.service.SystemService;
@@ -16,8 +17,8 @@ public class SystemController {
     }
 
     @GetMapping("/health")
-    public ResponseEntity<HealthResponse> getHealth() {
-        return ResponseEntity.ok(systemService.getHealth());
+    public ResponseEntity<ApiResponse<HealthResponse>> getHealth() {
+        return ResponseEntity.ok(ApiResponse.ok("Health check", systemService.getHealth()));
     }
 
     @GetMapping("/love")
@@ -36,7 +37,7 @@ public class SystemController {
     }
 
     @GetMapping("/info")
-    public ResponseEntity<InfoResponse> getInfo() {
-        return ResponseEntity.ok(systemService.getInfo());
+    public ResponseEntity<ApiResponse<InfoResponse>> getInfo() {
+        return ResponseEntity.ok(ApiResponse.ok("System info", systemService.getInfo()));
     }
 }
