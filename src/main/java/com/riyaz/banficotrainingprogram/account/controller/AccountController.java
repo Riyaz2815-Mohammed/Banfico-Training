@@ -4,6 +4,7 @@ import com.riyaz.banficotrainingprogram.account.dto.AccountLookupResponse;
 import com.riyaz.banficotrainingprogram.account.dto.AccountRequest;
 import com.riyaz.banficotrainingprogram.account.dto.AccountResponse;
 import com.riyaz.banficotrainingprogram.account.service.AccountService;
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,35 +26,35 @@ public class AccountController {
     }
 
     @GetMapping
-    public ResponseEntity<List<AccountResponse>> getAccounts(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<ApiResponse<List<AccountResponse>>> getAccounts(@AuthenticationPrincipal Jwt jwt) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        return ResponseEntity.ok(accountService.getAccounts(jwt.getClaimAsString("email"), roles.contains("admin") || roles.contains("BankManager")));
+        return ResponseEntity.ok(ApiResponse.ok("Accounts retrieved", accountService.getAccounts(jwt.getClaimAsString("email"), roles.contains("admin") || roles.contains("BankManager"))));
     }
 
     @GetMapping("/lookup")
-    public ResponseEntity<AccountLookupResponse> lookupByAccountNo(@RequestParam String accountNo) {
-        return ResponseEntity.ok(accountService.lookupByAccountNo(accountNo));
+    public ResponseEntity<ApiResponse<AccountLookupResponse>> lookupByAccountNo(@RequestParam String accountNo) {
+        return ResponseEntity.ok(ApiResponse.ok("Account found", accountService.lookupByAccountNo(accountNo)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID id) {
-        return ResponseEntity.ok(accountService.getAccount(id));
+    public ResponseEntity<ApiResponse<AccountResponse>> getAccount(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok("Account retrieved", accountService.getAccount(id)));
     }
 
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody AccountRequest account) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(accountService.createAccount(account));
+    public ResponseEntity<ApiResponse<AccountResponse>> createAccount(@Valid @RequestBody AccountRequest account) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Account created", accountService.createAccount(account)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AccountResponse> updateAccount(@PathVariable UUID id, @Valid @RequestBody AccountRequest account) {
-        return ResponseEntity.ok(accountService.updateAccount(id, account));
+    public ResponseEntity<ApiResponse<AccountResponse>> updateAccount(@PathVariable UUID id, @Valid @RequestBody AccountRequest account) {
+        return ResponseEntity.ok(ApiResponse.ok("Account updated", accountService.updateAccount(id, account)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Object>> deleteAccount(@PathVariable UUID id) {
         accountService.deleteAccount(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.ok("Account deleted", null));
     }
 }
