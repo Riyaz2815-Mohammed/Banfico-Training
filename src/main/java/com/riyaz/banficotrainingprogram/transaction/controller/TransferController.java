@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.transaction.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.payment.dto.PaymentResponse;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransferPreviewResponse;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransferRequest;
@@ -23,12 +24,12 @@ public class TransferController {
     }
 
     @GetMapping("/preview")
-    public ResponseEntity<TransferPreviewResponse> preview(@AuthenticationPrincipal Jwt jwt, @RequestParam UUID fromAccountId, @RequestParam String recipientAccountNo, @RequestParam Integer amount) {
-        return ResponseEntity.ok(transferService.preview(jwt.getClaimAsString("email"), fromAccountId, recipientAccountNo, amount));
+    public ResponseEntity<ApiResponse<TransferPreviewResponse>> preview(@AuthenticationPrincipal Jwt jwt, @RequestParam UUID fromAccountId, @RequestParam String recipientAccountNo, @RequestParam Integer amount) {
+        return ResponseEntity.ok(ApiResponse.ok("Transfer preview", transferService.preview(jwt.getClaimAsString("email"), fromAccountId, recipientAccountNo, amount)));
     }
 
     @PostMapping
-    public ResponseEntity<PaymentResponse> transfer(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TransferRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(transferService.transfer(jwt.getClaimAsString("email"), request));
+    public ResponseEntity<ApiResponse<PaymentResponse>> transfer(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TransferRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Transfer successful", transferService.transfer(jwt.getClaimAsString("email"), request)));
     }
 }
