@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
@@ -18,12 +19,12 @@ public class ProfileController {
     }
 
     @GetMapping
-    public ResponseEntity<CustomerResponse> getProfile(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(customerService.getMyProfile(jwt.getClaimAsString("email")));
+    public ResponseEntity<ApiResponse<CustomerResponse>> getProfile(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile retrieved", customerService.getMyProfile(jwt.getClaimAsString("email"))));
     }
 
     @PutMapping
-    public ResponseEntity<CustomerResponse> updateProfile(@RequestBody CustomerRequest request, @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(customerService.updateMyProfile(jwt.getClaimAsString("email"), request));
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(@RequestBody CustomerRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated", customerService.updateMyProfile(jwt.getClaimAsString("email"), request)));
     }
 }
