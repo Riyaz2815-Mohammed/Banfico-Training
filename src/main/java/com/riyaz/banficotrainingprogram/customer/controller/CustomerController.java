@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
@@ -19,23 +20,23 @@ public class CustomerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
-        return ResponseEntity.ok(customerService.getAllCustomers());
+    public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
+        return ResponseEntity.ok(ApiResponse.ok("Customers retrieved", customerService.getAllCustomers()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CustomerResponse> getCustomer(@PathVariable UUID id) {
-        return ResponseEntity.ok(customerService.getCustomerById(id));
+    public ResponseEntity<ApiResponse<CustomerResponse>> getCustomer(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok("Customer retrieved", customerService.getCustomerById(id)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CustomerResponse> updateCustomer(@PathVariable UUID id, @RequestBody CustomerRequest request) {
-        return ResponseEntity.ok(customerService.updateCustomer(id, request));
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@PathVariable UUID id, @RequestBody CustomerRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok("Customer updated", customerService.updateCustomer(id, request)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteCustomer(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Object>> deleteCustomer(@PathVariable UUID id) {
         customerService.deleteCustomer(id);
-        return ResponseEntity.ok("Customer " + id + " deleted");
+        return ResponseEntity.ok(ApiResponse.ok("Customer deleted", null));
     }
 }
