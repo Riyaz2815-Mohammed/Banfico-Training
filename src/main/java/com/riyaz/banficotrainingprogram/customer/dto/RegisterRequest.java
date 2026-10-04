@@ -2,6 +2,7 @@ package com.riyaz.banficotrainingprogram.customer.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
@@ -12,6 +13,8 @@ public class RegisterRequest {
     private String phoneNumber;
     private String username;
     private String temporaryPassword;
+    private String accountType;
+    private Integer initialBalance;
 
     @NotBlank(message = "First name is required")
     @Size(max = 20, message = "First name must be at most 20 characters")
@@ -47,4 +50,12 @@ public class RegisterRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     public String getTemporaryPassword() { return temporaryPassword; }
     public void setTemporaryPassword(String temporaryPassword) { this.temporaryPassword = temporaryPassword; }
+
+    @NotBlank(message = "Account type is required")
+    public String getAccountType() { return accountType; }
+    public void setAccountType(String accountType) { this.accountType = accountType; }
+
+    @NotNull(message = "Initial balance is required")
+    public Integer getInitialBalance() { return initialBalance; }
+    public void setInitialBalance(Integer initialBalance) { this.initialBalance = initialBalance; }
 }
