@@ -10,9 +10,12 @@ public class RegisterResponse {
     private String pan;
     private String phoneNumber;
     private String keycloakUserId;
-    private String message;
+    private UUID accountId;
+    private String accountNo;
+    private String accountType;
+    private Integer balance;
 
-    public RegisterResponse(UUID customerId, String firstName, String lastName, String email, String pan, String phoneNumber, String keycloakUserId) {
+    public RegisterResponse(UUID customerId, String firstName, String lastName, String email, String pan, String phoneNumber, String keycloakUserId, UUID accountId, String accountNo, String accountType, Integer balance) {
         this.customerId = customerId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -20,7 +23,10 @@ public class RegisterResponse {
         this.pan = pan;
         this.phoneNumber = phoneNumber;
         this.keycloakUserId = keycloakUserId;
-        this.message = "User registered successfully. They can now log in with the temporary password.";
+        this.accountId = accountId;
+        this.accountNo = accountNo;
+        this.accountType = accountType;
+        this.balance = balance;
     }
 
     public UUID getCustomerId() { return customerId; }
@@ -30,5 +36,8 @@ public class RegisterResponse {
     public String getPan() { return pan; }
     public String getPhoneNumber() { return phoneNumber; }
     public String getKeycloakUserId() { return keycloakUserId; }
-    public String getMessage() { return message; }
+    public UUID getAccountId() { return accountId; }
+    public String getAccountNo() { return accountNo; }
+    public String getAccountType() { return accountType; }
+    public Integer getBalance() { return balance; }
 }
