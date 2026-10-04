@@ -1,6 +1,7 @@
 {
   "info": {
     "name": "BankApp API",
+    "description": "All BankApp Spring Boot endpoints.\n\nApiResponse<T> wrapper — every response (success AND error) is enveloped:\n  { \"status\": 200, \"message\": \"...\", \"data\": <payload>, \"timestamp\": \"...\" }\nAll test scripts unwrap via json.data. Error responses set data: null.\n\nImport the matching environment file to fill in {{clientSecret}} and password variables before running.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -30,7 +31,7 @@
   "item": [
     {
       "name": "User Workflow (Demo)",
-      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts (RBAC — same endpoint as admin but filtered by JWT)\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money (v2 — idempotent, generates a paymentId automatically)\n8. Confirm transfer appears in transactions\n9. Remove beneficiary (cleanup)",
+      "description": "Run these requests top to bottom to demo the full user journey. Test scripts auto-capture IDs between steps — no manual copy-paste needed.\n\nAll responses are wrapped in ApiResponse<T> — test scripts unwrap via json.data.\n\nSteps:\n1. Login as Priya\n2. See only Priya's accounts (RBAC — same endpoint as admin but filtered by JWT)\n3. View transactions for her account\n4. Lookup a recipient by account number\n5. Add them as a beneficiary\n6. View saved beneficiaries\n7. Transfer money (v2 — idempotent, generates a paymentId automatically)\n8. Confirm transfer appears in transactions\n9. Remove beneficiary (cleanup)",
       "item": [
         {
           "name": "Step 1 — Login as Priya (user)",
@@ -57,10 +58,11 @@
           "name": "Step 2 — View My Accounts",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.length > 0) {",
-            "  pm.collectionVariables.set('demoAccountId', json[0].id);",
-            "  pm.collectionVariables.set('demoAccountNo', json[0].accountNo);",
-            "  console.log('Saved account: ' + json[0].accountNo + ' (' + json[0].accountType + ') — balance Rs.' + json[0].balance);",
+            "const accounts = json.data;",
+            "if (accounts && accounts.length > 0) {",
+            "  pm.collectionVariables.set('demoAccountId', accounts[0].id);",
+            "  pm.collectionVariables.set('demoAccountNo', accounts[0].accountNo);",
+            "  console.log('Saved account: ' + accounts[0].accountNo + ' (' + accounts[0].accountType + ') — balance Rs.' + accounts[0].balance);",
             "}"
           ]}}],
           "request": {
@@ -87,30 +89,33 @@
           "name": "Step 4 — Lookup Recipient by Account Number",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.id) {",
-            "  pm.collectionVariables.set('recipientAccountId', json.id);",
-            "  pm.collectionVariables.set('recipientAccountNo', json.accountNo);",
-            "  console.log('Recipient: ' + json.accountHolderName + ' — ' + json.accountType + ' ' + json.accountNo);",
+            "const acc = json.data;",
+            "if (acc && acc.id) {",
+            "  pm.collectionVariables.set('recipientAccountId', acc.id);",
+            "  pm.collectionVariables.set('recipientAccountNo', acc.accountNo);",
+            "  console.log('Recipient: ' + acc.accountHolderName + ' — ' + acc.accountType + ' ' + acc.accountNo);",
             "}"
           ]}}],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=SB001001",
+              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=REPLACE_WITH_12_DIGIT_ACCOUNT_NO",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "accounts", "lookup"],
-              "query": [{ "key": "accountNo", "value": "SB001001" }]
+              "query": [{ "key": "accountNo", "value": "REPLACE_WITH_12_DIGIT_ACCOUNT_NO" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Account numbers are now auto-generated 12-digit numbers (e.g. 847392018364). Replace the query param value with the actual account number of your target recipient."
           }
         },
         {
           "name": "Step 5 — Add as Beneficiary",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.id) {",
-            "  pm.collectionVariables.set('demoBeneficiaryId', json.id);",
-            "  console.log('Beneficiary saved: ' + json.accountHolderName + ' (' + json.nickname + ')');",
+            "const bene = json.data;",
+            "if (bene && bene.id) {",
+            "  pm.collectionVariables.set('demoBeneficiaryId', bene.id);",
+            "  console.log('Beneficiary saved: ' + bene.accountHolderName + ' (' + bene.nickname + ')');",
             "}"
           ]}}],
           "request": {
@@ -144,11 +149,12 @@
             ]}},
             { "listen": "test", "script": { "exec": [
               "const json = pm.response.json();",
-              "if (json.paymentId) {",
-              "  console.log('Transfer status: ' + json.status);",
-              "  console.log('Payment ID: ' + json.paymentId);",
-              "  console.log('To: ' + json.toAccountName + ' (' + json.toAccountNo + ')');",
-              "  console.log('Amount: Rs.' + json.amount);",
+              "const payment = json.data;",
+              "if (payment && payment.paymentId) {",
+              "  console.log('Transfer status: ' + payment.status);",
+              "  console.log('Payment ID: ' + payment.paymentId);",
+              "  console.log('To: ' + payment.toAccountName + ' (' + payment.toAccountNo + ')');",
+              "  console.log('Amount: Rs.' + payment.amount);",
               "}"
             ]}}
           ],
@@ -163,7 +169,7 @@
               "mode": "raw",
               "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 1000,\n  \"note\": \"Test transfer\"\n}"
             },
-            "description": "Idempotent transfer — a UUID paymentId is auto-generated by the pre-request script. Re-sending this request with the same paymentId returns the cached result instead of creating a duplicate transfer.\n\nResponse is a PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, status (COMPLETED/FAILED), initiatedAt."
+            "description": "Idempotent transfer — a UUID paymentId is auto-generated by the pre-request script. Re-sending this request with the same paymentId returns the cached result instead of creating a duplicate transfer.\n\nResponse data: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, status (COMPLETED/FAILED), initiatedAt."
           }
         },
         {
@@ -191,7 +197,7 @@
     },
     {
       "name": "BankManager Workflow (Demo)",
-      "description": "Run top to bottom to demo the full BankManager onboarding flow.\n\nSteps:\n1. Login as manager (BankManager role)\n2. Register a new user — creates both Keycloak account and customer DB record\n3. Login as admin to create an account for the new customer\n4. Create account for the registered customer",
+      "description": "Run top to bottom to demo the full BankManager onboarding flow.\n\nPOST /api/v2/customers now atomically creates Keycloak user + Customer DB record + first Account in one @Transactional saga. accountNo is auto-generated server-side (12-digit). No separate account-creation step is needed.\n\nSteps:\n1. Login as manager (BankManager role)\n2. Register a new customer — creates Keycloak account, Customer DB record, and first Account all at once",
       "item": [
         {
           "name": "Step 1 — Login as Manager",
@@ -215,15 +221,18 @@
           }
         },
         {
-          "name": "Step 2 — Register New User",
+          "name": "Step 2 — Register New Customer + Account (atomic)",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.customerId) {",
-            "  pm.collectionVariables.set('registeredCustomerId', json.customerId);",
-            "  pm.collectionVariables.set('registeredKeycloakUserId', json.keycloakUserId);",
-            "  console.log('Registered: ' + json.firstName + ' ' + json.lastName + ' (' + json.email + ')');",
-            "  console.log('customerId: ' + json.customerId);",
-            "  console.log(json.message);",
+            "const reg = json.data;",
+            "if (reg && reg.customerId) {",
+            "  pm.collectionVariables.set('registeredCustomerId', reg.customerId);",
+            "  pm.collectionVariables.set('registeredKeycloakUserId', reg.keycloakUserId);",
+            "  console.log('Registered: ' + reg.firstName + ' ' + reg.lastName + ' (' + reg.email + ')');",
+            "  console.log('customerId: ' + reg.customerId);",
+            "  console.log('accountId: ' + reg.accountId);",
+            "  console.log('accountNo (auto-generated): ' + reg.accountNo);",
+            "  console.log('accountType: ' + reg.accountType + ' — balance: Rs.' + reg.balance);",
             "}"
           ]}}],
           "request": {
@@ -235,44 +244,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Step 3 — Login as Admin (to create account)",
-          "event": [{ "listen": "test", "script": { "exec": [
-            "const json = pm.response.json();",
-            "pm.collectionVariables.set('token', json.access_token);",
-            "console.log('Switched to admin token — ready to create account');"
-          ]}}],
-          "request": {
-            "method": "POST",
-            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
-            "body": { "mode": "urlencoded", "urlencoded": [
-              { "key": "grant_type", "value": "password" },
-              { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "{{clientSecret}}" },
-              { "key": "username", "value": "riyaz" },
-              { "key": "password", "value": "{{riyazPassword}}" },
-              { "key": "scope", "value": "openid" }
-            ]}
-          }
-        },
-        {
-          "name": "Step 4 — Create Account for Registered Customer",
-          "request": {
-            "method": "POST",
-            "url": "{{baseUrl}}/api/v1/accounts",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"accountNo\": \"SB010001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 10000,\n  \"customerId\": \"{{registeredCustomerId}}\"\n}"
-            }
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 10000\n}"
+            },
+            "description": "Single atomic call — creates Keycloak user (with temporary password), Customer DB record, and first Account. If DB save fails, the Keycloak user is automatically deleted and the transaction rolls back.\n\nResponse data fields: customerId, firstName, lastName, email, pan, phoneNumber, keycloakUserId, accountId, accountNo (auto-generated 12-digit), accountType, balance."
           }
         }
       ]
@@ -294,6 +268,23 @@
               { "key": "client_secret", "value": "{{clientSecret}}" },
               { "key": "username", "value": "riyaz" },
               { "key": "password", "value": "{{riyazPassword}}" },
+              { "key": "scope", "value": "openid" }
+            ]}
+          }
+        },
+        {
+          "name": "Get Token (manager — BankManager)",
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: BankManager (manager)');"] } }],
+          "request": {
+            "method": "POST",
+            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
+            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "grant_type", "value": "password" },
+              { "key": "client_id", "value": "bankapp-frontend" },
+              { "key": "client_secret", "value": "{{clientSecret}}" },
+              { "key": "username", "value": "manager" },
+              { "key": "password", "value": "{{managerPassword}}" },
               { "key": "scope", "value": "openid" }
             ]}
           }
@@ -365,23 +356,6 @@
               { "key": "scope", "value": "openid" }
             ]}
           }
-        },
-        {
-          "name": "Get Token (manager — BankManager)",
-          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "pm.collectionVariables.set('token', json.access_token);", "console.log('Token set — role: BankManager (manager)');"] } }],
-          "request": {
-            "method": "POST",
-            "url": "{{keycloakUrl}}/realms/{{realm}}/protocol/openid-connect/token",
-            "header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
-            "body": { "mode": "urlencoded", "urlencoded": [
-              { "key": "grant_type", "value": "password" },
-              { "key": "client_id", "value": "bankapp-frontend" },
-              { "key": "client_secret", "value": "{{clientSecret}}" },
-              { "key": "username", "value": "manager" },
-              { "key": "password", "value": "{{managerPassword}}" },
-              { "key": "scope", "value": "openid" }
-            ]}
-          }
         }
       ]
     },
@@ -400,17 +374,19 @@
     },
     {
       "name": "Customers (Admin + BankManager)",
-      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v2/customers — creates Keycloak user + customer DB record (admin + BankManager).\nPOST /api/v1/managers — creates a BankManager account in Keycloak (admin only).\nGET/PUT/DELETE /api/v1/customers — admin only.",
+      "description": "View and register customers — accessible by admin and BankManager roles.\n\nPOST /api/v2/customers — atomically creates Keycloak user + Customer DB record + first Account. Requires accountType and initialBalance. accountNo is auto-generated server-side.\nPOST /api/v1/managers — creates a BankManager account (admin only).\nGET/PUT/DELETE /api/v1/customers — admin only for write operations.",
       "item": [
         {
-          "name": "Register User (admin + BankManager)",
+          "name": "Register Customer + Account (admin + BankManager)",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.customerId) {",
-            "  pm.collectionVariables.set('registeredCustomerId', json.customerId);",
-            "  console.log('Registered: ' + json.firstName + ' ' + json.lastName);",
-            "  console.log('customerId: ' + json.customerId);",
-            "  console.log(json.message);",
+            "const reg = json.data;",
+            "if (reg && reg.customerId) {",
+            "  pm.collectionVariables.set('registeredCustomerId', reg.customerId);",
+            "  pm.collectionVariables.set('registeredKeycloakUserId', reg.keycloakUserId);",
+            "  console.log('Registered: ' + reg.firstName + ' ' + reg.lastName);",
+            "  console.log('customerId: ' + reg.customerId);",
+            "  console.log('accountNo (auto-generated): ' + reg.accountNo);",
             "}"
           ]}}],
           "request": {
@@ -422,18 +398,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\"\n}"
-            }
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@bankapp.com\",\n  \"pan\": \"ABCDE1234F\",\n  \"phoneNumber\": \"9876543210\",\n  \"username\": \"johndoe\",\n  \"temporaryPassword\": \"TempPass@1\",\n  \"accountType\": \"SAVINGS\",\n  \"initialBalance\": 10000\n}"
+            },
+            "description": "Atomic @Transactional saga: creates Keycloak user (temporary password forces change on first login), saves Customer record to DB, and creates first Account with auto-generated 12-digit accountNo.\n\nIf DB fails → Keycloak user is deleted automatically. Response data: customerId, firstName, lastName, email, pan, phoneNumber, keycloakUserId, accountId, accountNo, accountType, balance."
           }
         },
         {
           "name": "Create Manager (admin only)",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.keycloakId) {",
-            "  console.log('Manager created: ' + json.firstName + ' ' + json.lastName + ' (' + json.email + ')');",
-            "  console.log('keycloakId: ' + json.keycloakId);",
-            "  console.log(json.message);",
+            "const mgr = json.data;",
+            "if (mgr && mgr.keycloakId) {",
+            "  console.log('Manager created: ' + mgr.firstName + ' ' + mgr.lastName + ' (' + mgr.email + ')');",
+            "  console.log('keycloakId: ' + mgr.keycloakId);",
             "}"
           ]}}],
           "request": {
@@ -447,7 +424,7 @@
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"email\": \"jane.smith@bankapp.com\",\n  \"username\": \"janemanager\",\n  \"temporaryPassword\": \"Manager@1234\"\n}"
             },
-            "description": "Creates a Keycloak user with the BankManager role. Only admin can call this. Returns keycloakId, username, email, firstName, lastName and a confirmation message."
+            "description": "Creates a Keycloak user with the BankManager role. Admin only. Returns keycloakId, username, email, firstName, lastName."
           }
         },
         {
@@ -493,19 +470,29 @@
     },
     {
       "name": "Accounts",
-      "description": "GET /api/v1/accounts returns all accounts (admin/BankManager) or only the caller's own accounts (user). GET /api/v1/accounts/lookup finds by account number.",
+      "description": "GET /api/v1/accounts returns all accounts (admin/BankManager) or only the caller's own accounts (user). GET /api/v1/accounts/lookup finds by account number.\n\naccountNo is auto-generated server-side (12-digit unique number) — do NOT include it in POST or PUT request bodies.",
       "item": [
         {
           "name": "Lookup Account by Number",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "const acc = json.data;",
+            "if (acc && acc.id) {",
+            "  pm.collectionVariables.set('recipientAccountId', acc.id);",
+            "  pm.collectionVariables.set('recipientAccountNo', acc.accountNo);",
+            "  console.log('Resolved: ' + acc.accountHolderName + ' — ' + acc.accountType + ' ' + acc.accountNo);",
+            "}"
+          ]}}],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=SB002001",
+              "raw": "{{baseUrl}}/api/v1/accounts/lookup?accountNo=REPLACE_WITH_12_DIGIT_ACCOUNT_NO",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "accounts", "lookup"],
-              "query": [{ "key": "accountNo", "value": "SB002001" }]
+              "query": [{ "key": "accountNo", "value": "REPLACE_WITH_12_DIGIT_ACCOUNT_NO" }]
             },
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Account numbers are auto-generated 12-digit numbers (e.g. 847392018364). Replace the query param with the actual target account number. Used before adding a beneficiary or previewing a transfer."
           }
         },
         {
@@ -525,7 +512,7 @@
           }
         },
         {
-          "name": "Create Account (admin)",
+          "name": "Create Account (admin / BankManager)",
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/api/v1/accounts",
@@ -535,8 +522,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accountNo\": \"SB009001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 50000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
-            }
+              "raw": "{\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 50000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
+            },
+            "description": "accountNo is NOT included — the server generates a unique 12-digit number automatically. Returns the new account including the generated accountNo."
           }
         },
         {
@@ -550,8 +538,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accountNo\": \"SB001001\",\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 105000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
-            }
+              "raw": "{\n  \"accountType\": \"SAVINGS\",\n  \"balance\": 105000,\n  \"customerId\": \"{{riyazCustomerId}}\"\n}"
+            },
+            "description": "accountNo is NOT included in the request body — it cannot be changed after creation."
           }
         },
         {
@@ -566,7 +555,7 @@
     },
     {
       "name": "Transactions",
-      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response is Spring Page<TransactionResponse>. Total count also available via X-Total-Count response header.\n\nTransactions are created automatically when a transfer completes — there is no manual creation endpoint.",
+      "description": "GET /api/v1/transactions?accountId= — staff can query any account; users can only query their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response data is Spring Page<TransactionResponse>. Total count also available via X-Total-Count response header.\n\nTransactions are created automatically when a transfer completes — there is no manual creation endpoint.",
       "item": [
         {
           "name": "Get Transactions (Riyaz SAVINGS)",
@@ -606,7 +595,7 @@
     },
     {
       "name": "Transfer (v2)",
-      "description": "GET /api/v2/transfer/preview — call before paying to get server-confirmed details (from balance, to account name, estimated timestamp).\n\nPOST /api/v2/transfer — user only. Idempotent: the client generates a UUID paymentId before sending. Re-sending the same paymentId returns the cached result instead of creating a duplicate.\n\nResponse is PaymentResponse: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, note, status (COMPLETED/FAILED), initiatedByName, initiatedAt, completedAt, failureReason.",
+      "description": "GET /api/v2/transfer/preview — call before paying to get server-confirmed details (from balance, to account name, estimated timestamp).\n\nPOST /api/v2/transfer — user only. Idempotent: the client generates a UUID paymentId before sending. Re-sending the same paymentId returns the cached result instead of creating a duplicate.\n\nResponse data: paymentId, fromAccountNo, toAccountNo, toAccountName, amount, note, status (COMPLETED/FAILED), initiatedByName, initiatedAt, completedAt, failureReason.",
       "item": [
         {
           "name": "Preview Transfer",
@@ -623,7 +612,7 @@
               ]
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "description": "Returns server-confirmed preview: fromAccountNo, fromAccountBalance, toAccountNo, toAccountName, amount, estimatedAt. Call this before POST /api/v2/transfer to show the user a confirmation screen with server-authoritative data."
+            "description": "Returns server-confirmed preview data: fromAccountNo, fromAccountBalance, toAccountNo, toAccountName, amount, estimatedAt. Call this before POST /api/v2/transfer to show the user a confirmation screen with authoritative data."
           }
         },
         {
@@ -636,12 +625,13 @@
             ]}},
             { "listen": "test", "script": { "exec": [
               "const json = pm.response.json();",
-              "if (json.paymentId) {",
-              "  console.log('Status: ' + json.status);",
-              "  console.log('Payment ID: ' + json.paymentId);",
-              "  console.log('To: ' + json.toAccountName + ' (' + json.toAccountNo + ')');",
-              "  console.log('Amount: Rs.' + json.amount);",
-              "  if (json.failureReason) console.log('Failure: ' + json.failureReason);",
+              "const payment = json.data;",
+              "if (payment && payment.paymentId) {",
+              "  console.log('Status: ' + payment.status);",
+              "  console.log('Payment ID: ' + payment.paymentId);",
+              "  console.log('To: ' + payment.toAccountName + ' (' + payment.toAccountNo + ')');",
+              "  console.log('Amount: Rs.' + payment.amount);",
+              "  if (payment.failureReason) console.log('Failure: ' + payment.failureReason);",
               "}"
             ]}}
           ],
@@ -654,7 +644,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
             }
           }
         },
@@ -662,8 +652,11 @@
           "name": "Retry Same Transfer (idempotency test)",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "console.log('Status: ' + json.status + ' (should be COMPLETED — same paymentId, no duplicate)');",
-            "console.log('Payment ID: ' + json.paymentId);"
+            "const payment = json.data;",
+            "if (payment) {",
+            "  console.log('Status: ' + payment.status + ' (should be COMPLETED — same paymentId, no duplicate)');",
+            "  console.log('Payment ID: ' + payment.paymentId);",
+            "}"
           ]}}],
           "request": {
             "method": "POST",
@@ -674,7 +667,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"SB002001\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
+              "raw": "{\n  \"paymentId\": \"{{paymentId}}\",\n  \"fromAccountId\": \"{{demoAccountId}}\",\n  \"recipientAccountNo\": \"{{recipientAccountNo}}\",\n  \"amount\": 500,\n  \"note\": \"Monthly share\"\n}"
             },
             "description": "Uses the same {{paymentId}} as the previous request. The backend returns the cached result — no second transfer is created. This is idempotency in action."
           }
@@ -683,7 +676,7 @@
     },
     {
       "name": "Payments",
-      "description": "GET /api/v1/payments — admin and BankManager see all payments; user sees only their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response is Spring Page<PaymentResponse>. Total count also available via X-Total-Count response header.\n\nOptional query param ?accountId= lets staff filter payments for a specific account.\n\nEach payment has a status: PENDING, COMPLETED, or FAILED.",
+      "description": "GET /api/v1/payments — admin and BankManager see all payments; user sees only their own.\n\nPaginated: pass ?page=0&size=20 (defaults applied server-side). Response data is Spring Page<PaymentResponse>. Total count also available via X-Total-Count response header.\n\nEach payment has a status: PENDING, COMPLETED, or FAILED.",
       "item": [
         {
           "name": "Get All Payments (admin / BankManager)",
@@ -734,6 +727,14 @@
             },
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "description": "When called with a user token, returns only that user's own payments regardless of query params."
+          }
+        },
+        {
+          "name": "Get Payment by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/payments/{{paymentId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           }
         }
       ]
@@ -797,9 +798,10 @@
           "name": "Add Beneficiary (user only — 403 for staff)",
           "event": [{ "listen": "test", "script": { "exec": [
             "const json = pm.response.json();",
-            "if (json.id) {",
-            "  pm.collectionVariables.set('demoBeneficiaryId', json.id);",
-            "  console.log('Beneficiary saved: ' + json.accountHolderName + ' (' + json.nickname + ')');",
+            "const bene = json.data;",
+            "if (bene && bene.id) {",
+            "  pm.collectionVariables.set('demoBeneficiaryId', bene.id);",
+            "  console.log('Beneficiary saved: ' + bene.accountHolderName + ' (' + bene.nickname + ')');",
             "}"
           ]}}],
           "request": {
