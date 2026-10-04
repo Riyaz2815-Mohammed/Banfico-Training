@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -34,7 +35,9 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public AccountResponse createAccount(AccountRequest accountRequest) {
         Customer customer = customerRepo.findById(accountRequest.getCustomerId()).orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + accountRequest.getCustomerId()));
-        Account savedAccount = accountRepo.save(new Account(accountRequest.getAccountNo(), accountRequest.getAccountType(), accountRequest.getBalance(), customer));
+        String accountNo;
+        do { accountNo = String.format("%012d", ThreadLocalRandom.current().nextLong(100000000000L, 999999999999L)); } while (accountRepo.findByAccountNo(accountNo).isPresent());
+        Account savedAccount = accountRepo.save(new Account(accountNo, accountRequest.getAccountType(), accountRequest.getBalance(), customer));
         return new AccountResponse(savedAccount.getId(), savedAccount.getAccountNo(), savedAccount.getAccountType(), savedAccount.getBalance(), savedAccount.getCustomer().getId(), savedAccount.getCustomer().getFirstName() + " " + savedAccount.getCustomer().getLastName());
     }
 
