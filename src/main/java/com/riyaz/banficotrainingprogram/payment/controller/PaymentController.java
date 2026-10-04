@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.payment.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.payment.dto.PaymentResponse;
 import com.riyaz.banficotrainingprogram.payment.service.PaymentService;
 import org.springframework.data.domain.Page;
@@ -26,17 +27,17 @@ public class PaymentController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PaymentResponse>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         Page<PaymentResponse> result = paymentService.getPayments(jwt.getClaimAsString("email"), accountId, roles.contains("admin") || roles.contains("BankManager"), pageable);
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
-        return ResponseEntity.ok().headers(headers).body(result);
+        return ResponseEntity.ok().headers(headers).body(ApiResponse.ok("Payments retrieved", result));
     }
 
     @GetMapping("/{paymentId}")
-    public ResponseEntity<PaymentResponse> getPayment(@PathVariable UUID paymentId) {
-        return ResponseEntity.ok(paymentService.getPayment(paymentId));
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPayment(@PathVariable UUID paymentId) {
+        return ResponseEntity.ok(ApiResponse.ok("Payment retrieved", paymentService.getPayment(paymentId)));
     }
 }
