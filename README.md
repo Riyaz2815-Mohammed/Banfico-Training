@@ -1,234 +1,181 @@
-# Banfico Training Program — Spring Boot Banking API
+# BankApp
 
-A REST API backend for a banking system built with Spring Boot 4.1.0. Handles customers, accounts, transactions, beneficiaries, payments, and fund transfers. Secured with Keycloak JWT authentication and role-based access control.
+Full-stack banking portal — Spring Boot 4.1 REST API, Next.js 16 frontend, Keycloak OIDC, PostgreSQL. Built as part of the Banfico training program.
+
+---
 
 ## Architecture
 
 ```
-Next.js (frontend)
-      |
-      |  Bearer JWT
-      v
-Spring Boot (this API) ──── PostgreSQL
-      |
-      |  Admin REST API
-      v
-Keycloak (identity provider)
+Browser
+  │  HTTPS (443)
+  ▼
+nginx / OpenResty (gateway)
+  ├─ /auth/*        ──▶ Keycloak :8080 (OIDC, login page)
+  ├─ /api/auth/*    ──▶ Next.js  :3000 (NextAuth callbacks)
+  ├─ /api/*         ──JWT verify──▶ Spring Boot :8080 ──JDBC──▶ PostgreSQL
+  └─ /*             ──▶ Next.js  :3000 (frontend)
 ```
 
-Spring Boot acts as an **OAuth2 resource server** — it never stores passwords. Every request must carry a valid Keycloak JWT. Spring verifies the token's signature using Keycloak's public key (`KEYCLOAK_JWK_URI`) and extracts roles from the `realm_access.roles` claim.
+JWT validation happens in the nginx Lua layer (`lua-resty-jwt`). Spring Boot never sees a raw JWT — it reads role claims from the `X-User-Roles` header injected by nginx. Nothing except nginx is exposed to the host.
 
-## Roles
+### Local dev (single machine)
 
-| Role | Access |
-|---|---|
-| `user` | Own accounts, own transactions, own beneficiaries, transfers, own payments, own profile |
-| `BankManager` | All customers, all accounts (including opening new ones), all transactions, all payments, register new users |
-| `admin` | Everything — including delete, create managers, view managers |
+All five containers (`gateway`, `spring-boot`, `postgres`, `keycloak`, `nextjs`) run on a single Docker network. Only nginx is port-mapped to the host (`80`, `443`).
 
-Roles are assigned in Keycloak and embedded in the JWT. `KeycloakJwtConverter` maps them to Spring Security authorities (`ROLE_USER`, `ROLE_BANKMANAGER`, `ROLE_ADMIN`).
+### Production (two VPC instances)
 
-## Endpoints
+| Instance | Services | Exposed |
+|----------|----------|---------|
+| Instance 1 | Spring Boot + PostgreSQL | port 8080 on VPC private IP (gateway → Spring Boot) |
+| Instance 2 | nginx + Next.js + Keycloak | 80/443 public; port 8080 on VPC private IP (Spring Boot → Keycloak Admin API) |
 
-### Public / System
+---
 
-| Method | URL | Access |
-|---|---|---|
-| GET | `/api/v1/health` | Public |
-| GET | `/api/v1/info` | Public |
+## Prerequisites
 
-### Customers
+- Docker & Docker Compose
+- A `.env` file in the root (copy from `.env.example`)
+- A TLS certificate pair in `api-gateway/certs/` (see Quick Start)
 
-| Method | URL | Access | Description |
-|---|---|---|---|
-| POST | `/api/v2/customers` | Admin, BankManager | Create Keycloak account + Customer DB record atomically |
-| GET | `/api/v1/customers` | Admin, BankManager | List all customers |
-| GET | `/api/v1/customers/{id}` | Admin, BankManager | Get customer by ID |
-| PUT | `/api/v1/customers/{id}` | Admin | Update customer details |
-| DELETE | `/api/v1/customers/{id}` | Admin | Delete customer |
+---
 
-`POST /api/v2/customers` creates both the Keycloak user (with `user` role and temporary password) and the DB customer record in a single call. If the DB save fails, the Keycloak user is automatically rolled back.
-
-### Managers
-
-| Method | URL | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/managers` | Admin | List all BankManager accounts from Keycloak |
-| POST | `/api/v1/managers` | Admin | Create a Keycloak account with BankManager role |
-
-### Accounts
-
-| Method | URL | Access | Behaviour |
-|---|---|---|---|
-| GET | `/api/v1/accounts` | Authenticated | Staff → all accounts; User → own accounts only |
-| GET | `/api/v1/accounts/{id}` | Authenticated | Get account by ID |
-| GET | `/api/v1/accounts/lookup?accountNo=` | Authenticated | Look up account by account number |
-| POST | `/api/v1/accounts` | Admin, BankManager | Open a new account for a customer |
-| PUT | `/api/v1/accounts/{id}` | Admin | Update account |
-| DELETE | `/api/v1/accounts/{id}` | Admin | Delete account |
-
-### Transactions
-
-Paginated — supports `?page=0&size=20&sort=transactionTime,desc`. Default: 20 per page, newest first. Response header `X-Total-Count` carries the total record count.
-
-| Method | URL | Access | Behaviour |
-|---|---|---|---|
-| GET | `/api/v1/transactions?accountId=` | Authenticated | Staff → any account; User → own accounts only. Paginated. |
-
-### Beneficiaries
-
-| Method | URL | Access | Behaviour |
-|---|---|---|---|
-| GET | `/api/v1/beneficiaries` | Authenticated | Staff + `?customerId=` → specific customer; User → own list |
-| POST | `/api/v1/beneficiaries` | User only | Add to own beneficiary list |
-| PUT | `/api/v1/beneficiaries/{id}` | User only | Update nickname |
-| DELETE | `/api/v1/beneficiaries/{id}` | User only | Remove beneficiary |
-
-Staff can view beneficiaries but cannot add, edit, or delete them.
-
-### Fund Transfer
-
-| Method | URL | Access | Description |
-|---|---|---|---|
-| GET | `/api/v2/transfer/preview?fromAccountId=&recipientAccountNo=&amount=` | User only | Preview transfer — returns from account, recipient name, amount, estimated time for confirmation screen |
-| POST | `/api/v2/transfer` | User only | Idempotent transfer — client provides a `paymentId` UUID as idempotency key |
-
-**Payment confirmation flow:** Call the preview endpoint first, show the customer "Send £X from ACC-XXXX to John Doe (ACC-001) at 14:32?", then POST to execute. Idempotency: if a transfer with the same `paymentId` already completed, the cached result is returned. If it is still `PENDING`, a 409 is returned.
-
-### Payments
-
-Paginated — supports `?page=0&size=20&sort=initiatedAt,desc`. Default: 20 per page, newest first. Response header `X-Total-Count` carries the total record count.
-
-| Method | URL | Access | Behaviour |
-|---|---|---|---|
-| GET | `/api/v1/payments` | Authenticated | Staff → all payments (optional `?accountId=`); User → own payments. Paginated. |
-| GET | `/api/v1/payments/{paymentId}` | Authenticated | Get a single payment by ID |
-
-Payment lifecycle: `PENDING` → `COMPLETED` / `FAILED`.
-
-### Profile
-
-| Method | URL | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/profile` | User only | Get own profile |
-| PUT | `/api/v1/profile` | User only | Update firstName, lastName, phoneNumber (email and PAN are read-only) |
-
-## Global Exception Handling
-
-All errors return a consistent JSON shape:
-
-```json
-{
-  "status": 400,
-  "error": "Invalid Data",
-  "message": "A customer with this email or PAN already exists.",
-  "timestamp": "2026-09-08T10:00:00"
-}
-```
-
-| Exception | HTTP Status |
-|---|---|
-| `ResourceNotFoundException` | 404 |
-| `InsufficientBalanceException` | 400 |
-| `MethodArgumentNotValidException` | 400 |
-| `DataIntegrityViolationException` | 400 |
-| `HttpClientErrorException` (409) | 409 |
-| `RestClientException` | 502 |
-| `Exception` | 500 |
-
-## Project Structure
-
-```
-src/main/java/com/riyaz/banficotrainingprogram/
-├── BanficoTrainingProgramApplication.java
-│
-├── customer/
-│   ├── controller/   CustomerController.java, CustomerV2Controller.java, ManagerController.java, ProfileController.java
-│   ├── dto/          CustomerRequest/Response, RegisterRequest/Response, CreateManagerRequest/Response, ManagerResponse.java
-│   ├── entity/       Customer.java
-│   ├── repository/   CustomerRepo.java
-│   └── service/      CustomerService.java, KeycloakAdminService.java
-│       └── impl/     CustomerServiceImpl.java
-│
-├── account/
-│   ├── controller/   AccountController.java
-│   ├── dto/          AccountRequest/Response, AccountLookupResponse
-│   ├── entity/       Account.java
-│   ├── repository/   AccountRepo.java
-│   └── service/      AccountService.java
-│       └── impl/     AccountServiceImpl.java
-│
-├── beneficiary/
-│   ├── controller/   BeneficiaryController.java
-│   ├── dto/          BeneficiaryRequest/Response
-│   ├── entity/       Beneficiary.java
-│   ├── repository/   BeneficiaryRepo.java
-│   └── service/      BeneficiaryService.java
-│       └── impl/     BeneficiaryServiceImpl.java
-│
-├── transaction/
-│   ├── controller/   TransactionController.java, TransferController.java
-│   ├── dto/          TransactionRequest/Response, TransferRequest.java
-│   ├── entity/       Transactions.java
-│   ├── repository/   TransactionsRepo.java
-│   └── service/      TransactionService.java, TransferService.java
-│       └── impl/     TransactionServiceImpl.java, TransferServiceImpl.java
-│
-├── payment/
-│   ├── controller/   PaymentController.java
-│   ├── dto/          PaymentResponse.java
-│   ├── entity/       Payment.java, PaymentStatus.java
-│   ├── repository/   PaymentRepo.java
-│   └── service/      PaymentService.java
-│       └── impl/     PaymentServiceImpl.java
-│
-├── system/
-│   ├── controller/   SystemController.java
-│   ├── dto/          HealthResponse.java, InfoResponse.java
-│   ├── metadata/     GitInfoProvider.java
-│   └── service/      SystemService.java
-│       └── impl/     SystemServiceImpl.java
-│
-├── exception/
-│   ├── GlobalExceptionHandler.java
-│   ├── ErrorResponse.java
-│   ├── ResourceNotFoundException.java
-│   └── InsufficientBalanceException.java
-│
-└── security/
-    ├── SecurityConfig.java         — endpoint access rules per role
-    └── KeycloakJwtConverter.java   — extracts Keycloak roles from JWT
-```
-
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `DB_URL` | JDBC connection URL (e.g. `jdbc:postgresql://localhost:5432/bankapp`) |
-| `DB_USERNAME` | Database username |
-| `DB_PASSWORD` | Database password |
-| `KEYCLOAK_JWK_URI` | Keycloak public key endpoint for JWT verification |
-| `KEYCLOAK_ADMIN_URL` | Keycloak base URL for Admin API calls |
-| `KEYCLOAK_ADMIN_USERNAME` | Master realm admin username |
-| `KEYCLOAK_ADMIN_PASSWORD` | Master realm admin password |
-
-Copy `.env.example` to `.env` and fill in your values.
-
-## Running with Docker
+## Quick Start (local dev)
 
 ```bash
-# From the SpringBOOOO/ directory (where docker-compose.yml lives)
+# 1 — Generate a self-signed TLS cert (only needed once)
+cd api-gateway/certs && bash generate-certs.sh && cd ../..
+
+# 2 — Create .env from example
+cp .env.example .env  # then fill in secrets
+
+# 3 — Start everything
 docker compose up --build -d
 
-# Rebuild Spring Boot only
-docker compose up --build -d spring-boot
+# Tail logs
+docker compose logs -f gateway
+docker compose logs -f spring-boot
 ```
 
-Services after startup:
-- Spring Boot API: `http://localhost:8080`
-- Keycloak admin console: `http://localhost:8180`
-- PostgreSQL: `localhost:5432`
+App available at **https://localhost** (accept the self-signed cert warning in your browser).
 
-## Author
+| Path | Service |
+|------|---------|
+| `https://localhost` | Next.js frontend |
+| `https://localhost/api/v1/health` | Spring Boot health |
+| `https://localhost/auth/` | Keycloak admin / OIDC |
+| `https://localhost/gateway/health` | nginx health |
 
-Riyaz
+---
+
+## Testing with Postman
+
+Import `Banfico-Training program/postman/BankApp-API.postman_collection.json`.
+
+All requests go through the full gateway stack at `https://localhost`. JWT validation happens in nginx — Spring Boot never sees a raw token.
+
+1. **Auth → Get Token** (pick any user) — test script saves `access_token` to `{{token}}`
+2. Send any API request — `Authorization: Bearer {{token}}` is already set on every request
+3. Token expired? Re-run step 1
+
+> Disable SSL certificate verification in Postman Settings → General (self-signed cert on localhost).
+
+Log in as different users to test RBAC. Same endpoint, different token → different result:
+
+| Login as | Role | Example: GET /api/v1/accounts |
+|----------|------|-------------------------------|
+| riyaz | ADMIN, USER | All accounts bank-wide |
+| manager | BANKMANAGER | All accounts bank-wide |
+| priya / arjun / sneha / rahul | USER | Own accounts only |
+
+---
+
+## Production deploy
+
+```bash
+# Instance 1
+cp .env.example .env.instance1
+# set INSTANCE2_PRIVATE_IP in .env.instance1
+docker compose -f docker-compose.instance1.yml --env-file .env.instance1 up -d
+
+# Instance 2
+cp .env.example .env.instance2
+# set INSTANCE1_PRIVATE_IP, DOMAIN in .env.instance2
+cd api-gateway/certs && bash generate-certs.sh && cd ../..   # or use real cert
+docker compose -f docker-compose.instance2.yml --env-file .env.instance2 up -d
+```
+
+---
+
+## Environment Variables (`.env`)
+
+```env
+DB_NAME=bankapp
+DB_USERNAME=bankapp
+DB_PASSWORD=<your-db-password>
+KC_ADMIN_PASSWORD=<keycloak-admin-password>
+KEYCLOAK_CLIENT_SECRET=<get-from-keycloak-admin-console>
+NEXTAUTH_SECRET=<generate: openssl rand -base64 32>
+```
+
+---
+
+## Default Users
+
+Seeded via `keycloak/realm-export.json` on first start.
+
+| Username | Password      | Role        |
+|----------|---------------|-------------|
+| riyaz    | Riyaz@1234    | admin, user |
+| manager  | Manager@1234  | BankManager |
+| priya    | Priya@1234    | user        |
+| arjun    | Arjun@1234    | user        |
+| sneha    | Sneha@1234    | user        |
+| rahul    | Rahul@1234    | user        |
+
+---
+
+## API Overview
+
+All API responses are wrapped in `ApiResponse<T>`:
+
+```json
+{ "status": 200, "message": "...", "data": {...}, "timestamp": "2026-10-04T10:30:00" }
+```
+
+| Group              | Endpoints                                                 | Role              |
+|--------------------|-----------------------------------------------------------|-------------------|
+| System             | `GET /api/v1/health`, `GET /api/v1/info`                  | Public            |
+| Register (v2)      | `POST /api/v2/customers`                                  | ADMIN, BANKMANAGER|
+| Customers (v1)     | `GET/PUT/DELETE /api/v1/customers/{id}`                   | ADMIN (MANAGER read) |
+| Accounts (v1)      | `GET/POST/PUT/DELETE /api/v1/accounts`, `/lookup`         | ADMIN, BANKMANAGER|
+| Transactions (v1)  | `GET /api/v1/transactions?accountId=&page=&size=`         | Authenticated     |
+| Payments (v1)      | `GET /api/v1/payments`, `GET /api/v1/payments/{id}`       | Authenticated     |
+| Transfer (v2)      | `GET /api/v2/transfer/preview`, `POST /api/v2/transfer`   | USER              |
+| Beneficiaries (v1) | `GET/POST/PUT/DELETE /api/v1/beneficiaries`               | USER (GET: all)   |
+| Profile (v1)       | `GET/PUT /api/v1/profile`                                 | USER              |
+| Managers (v1)      | `GET/POST /api/v1/managers`                               | ADMIN             |
+
+Import `Banfico-Training program/postman/BankApp-API.postman_collection.json` into Postman for full request/response examples.
+
+For the complete product and technical specification see `Product.html`.
+
+---
+
+## Key Design Decisions
+
+**nginx JWT gateway** — JWT validation (RS256, Keycloak public key) runs in the nginx Lua layer using `lua-resty-jwt`. Spring Boot trusts the `X-User-Roles` header injected by nginx rather than parsing JWTs itself. The public key is fetched once from `/auth/realms/bankapp` and cached for 1 hour in `lua_shared_dict`.
+
+**Single issuer, routed through nginx** — Keycloak runs under the `/auth` relative path and reads `X-Forwarded-*` from nginx (`KC_PROXY_HEADERS: xforwarded`), so the JWT `iss` claim is `https://localhost/auth/realms/bankapp` — the same URL the browser uses. NextAuth's server-side token exchange and token refresh use that same public issuer; the Next.js container patches `/etc/hosts` at startup so `localhost` resolves to the gateway container IP, routing the backchannel call through nginx instead of hitting Keycloak directly. One hostname everywhere avoids OIDC discovery/issuer mismatches.
+
+**nginx proxy buffers for Auth.js** — NextAuth v5 writes large encrypted session cookies (chunked `Set-Cookie` headers, ~5–10 KB) on every OIDC callback and protected-page render. The `/`, `/api/auth/`, and `/auth/` locations raise `proxy_buffer_size` to 128k (`proxy_buffers 4 256k`) so these responses don't overflow nginx's default 4k header buffer and return 502.
+
+**Atomic customer onboarding** — `POST /api/v2/customers` creates a Keycloak user, Customer record, and first Account in a single `@Transactional` saga. If the DB save fails, the Keycloak user is deleted automatically.
+
+**Auto-generated account numbers** — 12-digit unique numbers are generated server-side using `ThreadLocalRandom` with a collision check loop. Clients never supply `accountNo`.
+
+**ApiResponse wrapper** — every controller returns `ResponseEntity<ApiResponse<T>>`. The frontend Axios interceptor in `BankApp/lib/api.ts` unwraps `response.data.data → response.data` transparently.
+
+**Custom Keycloak login theme** — the `bankapp` theme (`keycloak/themes/bankapp/`) overrides the default Keycloak UI with FreeMarker templates and CSS that match BankApp's design. Mounted as a read-only volume.
+
+**Idempotent transfers** — `POST /api/v2/transfer` uses a client-generated `paymentId` UUID as an idempotency key. Re-sending the same `paymentId` returns the existing payment without double-charging.

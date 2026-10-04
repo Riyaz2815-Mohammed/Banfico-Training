@@ -1,292 +1,1980 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Banfico Banking API — Product Reference</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f7fa; color: #1a1a2e; }
-    header { background: #0f3460; color: #fff; padding: 28px 40px; }
-    header h1 { font-size: 1.8rem; font-weight: 700; }
-    header p { margin-top: 6px; opacity: 0.75; font-size: 0.95rem; }
-    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BankApp — Product & Technical Specification</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy:   #0f2744;
+    --navy2:  #1a3a5c;
+    --blue:   #1d5fa8;
+    --blue2:  #2e7dd1;
+    --gold:   #c9a030;
+    --gold2:  #e6b93a;
+    --light:  #f4f7fb;
+    --border: #dce6f5;
+    --text:   #1a2840;
+    --muted:  #5a6e8a;
+    --white:  #ffffff;
+    --code-bg:#eef3fa;
+    --green:  #1a7a4a;
+    --red:    #b83232;
+    --orange: #c47a1a;
+  }
 
-    .section { margin-bottom: 48px; }
-    .section h2 { font-size: 1.25rem; font-weight: 700; color: #0f3460; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 20px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    thead tr { background: #0f3460; color: #fff; position: sticky; top: 0; z-index: 1; }
-    th, td { padding: 12px 16px; text-align: left; font-size: 0.875rem; }
-    td { border-bottom: 1px solid #f0f0f0; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f8faff; }
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--white);
+    font-size: 13px;
+    line-height: 1.7;
+  }
 
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-    .get    { background: #d1fae5; color: #065f46; }
-    .post   { background: #dbeafe; color: #1e40af; }
-    .put    { background: #fef3c7; color: #92400e; }
-    .delete { background: #fee2e2; color: #991b1b; }
+  /* ── PRINT ── */
+  @media print {
+    .no-print { display: none; }
+    .page-break { page-break-before: always; }
+    body { font-size: 11.5px; }
+    .cover { min-height: 100vh; }
+  }
 
-    .roles { display: flex; gap: 6px; flex-wrap: wrap; }
-    .role { padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
-    .role-admin   { background: #ede9fe; color: #5b21b6; }
-    .role-manager { background: #fce7f3; color: #831843; }
-    .role-user    { background: #d1fae5; color: #065f46; }
-    .role-public  { background: #f3f4f6; color: #374151; }
+  /* ── COVER ── */
+  .cover {
+    min-height: 100vh;
+    background: linear-gradient(145deg, var(--navy) 0%, var(--navy2) 55%, #14355e 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 72px;
+    position: relative;
+    overflow: hidden;
+  }
 
-    .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-    .card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: #0f3460; }
-    .card p, .card ul { font-size: 0.85rem; color: #4b5563; line-height: 1.6; }
-    .card ul { padding-left: 18px; }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 520px; height: 520px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(45,125,209,0.18) 0%, transparent 70%);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -80px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,160,48,0.12) 0%, transparent 70%);
+  }
 
-    code { font-family: "SFMono-Regular", Consolas, monospace; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
-    pre { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 20px; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; }
-  </style>
+  .cover-top { display: flex; align-items: center; gap: 14px; }
+
+  .logo-mark {
+    width: 46px; height: 46px;
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px; color: var(--navy);
+    flex-shrink: 0;
+  }
+
+  .cover-org {
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .cover-main { z-index: 1; }
+
+  .cover-tag {
+    display: inline-block;
+    background: rgba(201,160,48,0.18);
+    border: 1px solid rgba(201,160,48,0.45);
+    color: var(--gold2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    margin-bottom: 24px;
+  }
+
+  .cover-title {
+    font-size: 58px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .cover-title span {
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .cover-subtitle {
+    margin-top: 18px;
+    color: rgba(255,255,255,0.6);
+    font-size: 18px;
+    font-weight: 400;
+    max-width: 480px;
+    line-height: 1.55;
+  }
+
+  .cover-divider {
+    width: 56px; height: 3px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+    border-radius: 2px;
+    margin: 32px 0;
+  }
+
+  .cover-meta {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .cover-meta-item label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+
+  .cover-meta-item span {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .cover-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    z-index: 1;
+  }
+
+  .cover-confidential {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* ── PAGE LAYOUT ── */
+  .page { max-width: 900px; margin: 0 auto; padding: 56px 72px; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 52px; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy2);
+    margin: 28px 0 12px;
+  }
+
+  h4 {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  p { color: var(--muted); margin-bottom: 12px; line-height: 1.75; }
+
+  /* ── TOC ── */
+  .toc { background: var(--light); border-radius: 16px; padding: 32px 36px; }
+  .toc-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 18px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; }
+  .toc-item { display: flex; gap: 10px; align-items: baseline; }
+  .toc-num { font-size: 11px; font-weight: 700; color: var(--blue); min-width: 20px; }
+  .toc-link { font-size: 13px; color: var(--text); font-weight: 500; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted var(--border); position: relative; top: -3px; }
+  .toc-page { font-size: 11px; color: var(--muted); }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .card-icon { font-size: 22px; margin-bottom: 10px; }
+  .card-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .card-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+  /* ── TECH STACK ── */
+  .stack-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stack-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .stack-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .stack-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .stack-role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* ── TABLES ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 12.5px; }
+  thead tr { background: var(--navy); }
+  thead th {
+    text-align: left;
+    color: rgba(255,255,255,0.9);
+    font-weight: 600;
+    padding: 11px 14px;
+    font-size: 11.5px;
+    letter-spacing: 0.03em;
+  }
+  tbody tr:nth-child(even) { background: var(--light); }
+  tbody tr:nth-child(odd) { background: var(--white); }
+  tbody tr:hover { background: #e8f0fb; }
+  tbody td { padding: 10px 14px; color: var(--text); border-bottom: 1px solid var(--border); }
+  table thead th:first-child { border-radius: 8px 0 0 0; }
+  table thead th:last-child  { border-radius: 0 8px 0 0; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 10.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 100px;
+    white-space: nowrap;
+  }
+  .badge-get    { background: #e0f0ff; color: #1565c0; }
+  .badge-post   { background: #e6f9ee; color: #1a6e40; }
+  .badge-put    { background: #fff3e0; color: #b35c00; }
+  .badge-delete { background: #fce8e8; color: #b83232; }
+  .badge-pub    { background: #f3e8ff; color: #6b21a8; }
+  .badge-role   { background: var(--navy); color: var(--white); font-size: 10px; }
+  .badge-admin  { background: #fce8e8; color: #b83232; }
+  .badge-manager{ background: #e6f9ee; color: #1a6e40; }
+  .badge-user   { background: #e0f0ff; color: #1565c0; }
+  .badge-all    { background: #f3f4f6; color: #374151; }
+
+  /* ── CODE ── */
+  pre, code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+  }
+  pre {
+    background: #0f1e33;
+    color: #c9d8ef;
+    padding: 18px 22px;
+    border-radius: 12px;
+    margin: 12px 0 20px;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .kw  { color: #79b8ff; }
+  .str { color: #9ecbff; }
+  .key { color: #b392f0; }
+  .val { color: #79b8ff; }
+  .cmt { color: #6a737d; font-style: italic; }
+  .num { color: #f97583; }
+  code {
+    background: var(--code-bg);
+    color: var(--blue);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 11px;
+  }
+
+  /* ── ARCH DIAGRAMS ── */
+  .diagram-wrap {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin: 20px 0 28px;
+    display: flex;
+    justify-content: center;
+    overflow-x: auto;
+  }
+
+  /* ── FLOW STEPS ── */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 16px 0 24px; }
+  .flow-step {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 14px 18px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    position: relative;
+  }
+  .flow-step:first-child { border-radius: 12px 12px 0 0; }
+  .flow-step:last-child  { border-radius: 0 0 12px 12px; }
+  .flow-step + .flow-step { border-top: none; }
+  .flow-num {
+    width: 26px; height: 26px;
+    background: var(--blue);
+    color: var(--white);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .flow-body { flex: 1; }
+  .flow-title { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+  .flow-desc  { font-size: 12px; color: var(--muted); }
+
+  /* ── ROLE BLOCKS ── */
+  .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0 24px; }
+  .role-card {
+    border-radius: 14px;
+    padding: 20px;
+    border: 1.5px solid;
+  }
+  .role-card.admin   { background: #fff8f8; border-color: #f0c0c0; }
+  .role-card.manager { background: #f0faf4; border-color: #a8dfc0; }
+  .role-card.user    { background: #f0f6ff; border-color: #a8c8f0; }
+  .role-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; margin-bottom: 12px; display: inline-block; }
+  .role-card.admin   .role-badge { background: #b83232; color: #fff; }
+  .role-card.manager .role-badge { background: #1a7a4a; color: #fff; }
+  .role-card.user    .role-badge { background: #1565c0; color: #fff; }
+  .role-name { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .role-list { list-style: none; }
+  .role-list li { font-size: 12px; color: var(--muted); padding: 3px 0; }
+  .role-list li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+
+  /* ── EXCEPTION TABLE ── */
+  .exc-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    background: var(--code-bg);
+    color: var(--blue);
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    background: #eef6ff;
+    border-left: 3px solid var(--blue2);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 12px 0 20px;
+    font-size: 12.5px;
+    color: var(--navy2);
+  }
+
+  /* ── FOOTER ── */
+  .doc-footer {
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+
+  /* ── ENDPOINT BLOCK ── */
+  .endpoint {
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .endpoint-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px;
+    background: var(--light);
+    border-bottom: 1px solid var(--border);
+  }
+  .endpoint-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; font-weight: 500;
+    color: var(--navy);
+  }
+  .endpoint-desc { font-size: 11.5px; color: var(--muted); margin-left: auto; }
+  .endpoint-body { padding: 16px 18px; }
+  .endpoint-body p { font-size: 12px; margin-bottom: 6px; }
+  .endpoint-body pre { margin: 6px 0 0; }
+
+</style>
 </head>
 <body>
 
-<header>
-  <h1>Banfico Banking API</h1>
-  <p>Spring Boot · Keycloak JWT · PostgreSQL &nbsp;|&nbsp; Base URL: <code style="background:rgba(255,255,255,.15);color:#fff">http://localhost:8080</code></p>
-</header>
+<!-- ═══════════════════════════════════════════ COVER ═══ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="logo-mark">B</div>
+    <div class="cover-org">Banfico Training Program</div>
+  </div>
 
-<main>
+  <div class="cover-main">
+    <div class="cover-tag">Product &amp; Technical Specification</div>
+    <div class="cover-title">Bank<span>App</span></div>
+    <div class="cover-subtitle">
+      A full-stack banking portal with role-based access control, Keycloak authentication, an nginx / OpenResty API gateway that validates JWTs at the edge, and a Spring Boot REST API — built as part of the Banfico training program.
+    </div>
+    <div class="cover-divider"></div>
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <label>Application Version</label>
+        <span>v1.0</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Document Version</label>
+        <span>v1.0</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Date</label>
+        <span>October 2026</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Author</label>
+        <span>Riyaz</span>
+      </div>
+    </div>
+  </div>
 
-  <!-- Roles -->
+  <div class="cover-bottom">
+    <div class="cover-confidential">Confidential — Internal Use Only</div>
+    <div style="color:rgba(255,255,255,0.2);font-size:11px;">BankApp v1.0 · Oct 2026</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 2 — TOC ═══ -->
+<div class="page page-break">
   <div class="section">
-    <h2>Roles</h2>
-    <div class="info-grid">
+    <div class="section-label">Navigation</div>
+    <h2>Table of Contents</h2>
+    <div class="toc">
+      <div class="toc-title">Contents</div>
+      <div class="toc-grid">
+        <div class="toc-item"><span class="toc-num">1</span><span class="toc-link">Executive Summary</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">6</span><span class="toc-link">API Contracts</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">2</span><span class="toc-link">Technology Stack</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">7</span><span class="toc-link">Data Model</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">3</span><span class="toc-link">System Architecture</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">8</span><span class="toc-link">Error Handling</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">4</span><span class="toc-link">Authentication &amp; Authorization</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">9</span><span class="toc-link">Application Layer Architecture</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">5</span><span class="toc-link">Role-Based Access Control</span><span class="toc-dots"></span></div>
+        <div class="toc-item"><span class="toc-num">10</span><span class="toc-link">Deployment Architecture</span><span class="toc-dots"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 1 — Executive Summary -->
+  <div class="section">
+    <div class="section-label">Section 1</div>
+    <h2>Executive Summary</h2>
+    <p>
+      BankApp is a full-stack banking portal built with Next.js 16, Spring Boot 4.1, and Keycloak. It enables three distinct user roles — customers, bank managers, and administrators — each with a tailored experience. The system handles customer onboarding, account management, fund transfers, beneficiary management, idempotent payments, and manager provisioning — all secured through industry-standard OAuth2 / OIDC authentication.
+    </p>
+
+    <div class="card-grid">
       <div class="card">
-        <h3>admin</h3>
-        <ul>
-          <li>Full access to everything</li>
-          <li>Create / delete managers</li>
-          <li>Delete accounts and customers</li>
-        </ul>
+        <div class="card-icon">🔐</div>
+        <div class="card-title">Secure by Default</div>
+        <div class="card-desc">Every API request is protected by a Keycloak JWT. Spring Boot verifies the token signature without storing credentials.</div>
       </div>
       <div class="card">
-        <h3>BankManager</h3>
-        <ul>
-          <li>Register new customers</li>
-          <li>Open (create) accounts</li>
-          <li>View all customers, accounts, transactions, payments</li>
-        </ul>
+        <div class="card-icon">👥</div>
+        <div class="card-title">Three Roles</div>
+        <div class="card-desc">Admin, BankManager, and User each see a different UI and have different API permissions enforced at the backend.</div>
       </div>
       <div class="card">
-        <h3>user (customer)</h3>
-        <ul>
-          <li>Own accounts &amp; transactions only</li>
-          <li>Add / manage own beneficiaries</li>
-          <li>Make transfers (payments)</li>
+        <div class="card-icon">🏦</div>
+        <div class="card-title">Full Banking Suite</div>
+        <div class="card-desc">Customers, accounts, transactions, transfers, payments, beneficiaries, and manager provisioning — all managed through a versioned REST API.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 2 — Tech Stack -->
+  <div class="section">
+    <div class="section-label">Section 2</div>
+    <h2>Technology Stack</h2>
+    <div class="stack-grid">
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#e8f4ff;">⚛️</div>
+        <div>
+          <div class="stack-name">Next.js 16 (App Router)</div>
+          <div class="stack-role">Frontend — TypeScript, Tailwind CSS v4</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#e8fff2;">🍃</div>
+        <div>
+          <div class="stack-name">Spring Boot 4.1.0</div>
+          <div class="stack-role">REST API — Java 17, Spring Web MVC, Spring Data JPA</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#fff4e0;">🔑</div>
+        <div>
+          <div class="stack-name">Keycloak</div>
+          <div class="stack-role">Identity Provider — OIDC, OAuth2, JWT, RBAC</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#f0e8ff;">🐘</div>
+        <div>
+          <div class="stack-name">PostgreSQL</div>
+          <div class="stack-role">Relational Database — hosted on Neon DB (prod)</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#e8f4ff;">🔒</div>
+        <div>
+          <div class="stack-name">NextAuth v5 (Auth.js)</div>
+          <div class="stack-role">Frontend session management, Keycloak provider</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#e8fff2;">🐳</div>
+        <div>
+          <div class="stack-name">Docker / Docker Compose</div>
+          <div class="stack-role">Containerised deployment — all services orchestrated</div>
+        </div>
+      </div>
+      <div class="stack-item">
+        <div class="stack-icon" style="background:#0a1929;">⚙️</div>
+        <div>
+          <div class="stack-name">nginx / OpenResty 1.25.3.2</div>
+          <div class="stack-role">API gateway — TLS termination, JWT validation (lua-resty-jwt), reverse proxy, rate limiting</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 3 — SYSTEM ARCH ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 3</div>
+    <h2>System Architecture</h2>
+    <p>Five services run in Docker containers on the same internal network. The browser communicates only with <strong>nginx / OpenResty</strong> on ports 80 and 443. All other services — Next.js, Keycloak, Spring Boot, and PostgreSQL — are internal only, never exposed to the host directly. JWT validation (RS256, Keycloak public key) runs in the nginx Lua layer using <code>lua-resty-jwt</code> — Spring Boot trusts the <code>X-User-Roles</code> header injected by nginx instead of parsing JWTs itself.</p>
+
+    <div class="diagram-wrap">
+      <svg width="760" height="430" viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#2e7dd1"/>
+          </marker>
+          <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+          </marker>
+          <marker id="arrg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#c47a1a"/>
+          </marker>
+          <marker id="arrp" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#6b21a8"/>
+          </marker>
+          <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%">
+            <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#0f274420"/>
+          </filter>
+        </defs>
+
+        <!-- Browser -->
+        <rect x="15" y="175" width="105" height="100" rx="14" fill="#f4f7fb" stroke="#dce6f5" stroke-width="1.5" filter="url(#shadow)"/>
+        <text x="67" y="210" text-anchor="middle" font-size="22">🌐</text>
+        <text x="67" y="232" text-anchor="middle" font-size="12" font-weight="700" fill="#0f2744">Browser</text>
+        <text x="67" y="250" text-anchor="middle" font-size="10" fill="#5a6e8a">User / Manager</text>
+        <text x="67" y="265" text-anchor="middle" font-size="10" fill="#5a6e8a">/ Admin</text>
+
+        <!-- nginx gateway -->
+        <rect x="150" y="160" width="130" height="130" rx="14" fill="#0a1929" stroke="#1d5fa8" stroke-width="2" filter="url(#shadow)"/>
+        <text x="215" y="196" text-anchor="middle" font-size="22">⚙️</text>
+        <text x="215" y="218" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">nginx / OpenResty</text>
+        <text x="215" y="235" text-anchor="middle" font-size="9.5" fill="rgba(255,255,255,0.6)">TLS · reverse proxy</text>
+        <text x="215" y="250" text-anchor="middle" font-size="9.5" fill="rgba(255,255,255,0.6)">JWT verify (Lua)</text>
+        <text x="215" y="265" text-anchor="middle" font-size="9.5" fill="#79b8ff" font-weight="600">Host :80 / :443</text>
+        <text x="215" y="280" text-anchor="middle" font-size="9.5" fill="rgba(255,255,255,0.6)">rate limiting</text>
+
+        <!-- Next.js -->
+        <rect x="320" y="30" width="150" height="95" rx="14" fill="#0f2744" stroke="#1d5fa8" stroke-width="1.5" filter="url(#shadow)"/>
+        <text x="395" y="62" text-anchor="middle" font-size="20">⚛️</text>
+        <text x="395" y="83" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Next.js 16</text>
+        <text x="395" y="100" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">App Router · TypeScript</text>
+        <text x="395" y="115" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">Internal :3000</text>
+
+        <!-- Keycloak -->
+        <rect x="320" y="160" width="150" height="95" rx="14" fill="#7b3f00" stroke="#c47a1a" stroke-width="1.5" filter="url(#shadow)"/>
+        <text x="395" y="192" text-anchor="middle" font-size="20">🔑</text>
+        <text x="395" y="213" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Keycloak</text>
+        <text x="395" y="230" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">OIDC · JWT · RBAC</text>
+        <text x="395" y="245" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">Internal :8080</text>
+
+        <!-- Spring Boot -->
+        <rect x="320" y="290" width="150" height="95" rx="14" fill="#1a5c2a" stroke="#28a745" stroke-width="1.5" filter="url(#shadow)"/>
+        <text x="395" y="322" text-anchor="middle" font-size="20">🍃</text>
+        <text x="395" y="343" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Spring Boot 4</text>
+        <text x="395" y="360" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">REST API · Internal :8080</text>
+        <text x="395" y="375" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">X-User-Roles header auth</text>
+
+        <!-- PostgreSQL -->
+        <rect x="560" y="290" width="135" height="95" rx="14" fill="#2d1b69" stroke="#6b21a8" stroke-width="1.5" filter="url(#shadow)"/>
+        <text x="627" y="322" text-anchor="middle" font-size="20">🐘</text>
+        <text x="627" y="343" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">PostgreSQL</text>
+        <text x="627" y="360" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">Internal :5432</text>
+        <text x="627" y="375" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)">Neon DB (prod)</text>
+
+        <!-- Browser → nginx -->
+        <line x1="120" y1="222" x2="148" y2="222" stroke="#2e7dd1" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="134" y="214" text-anchor="middle" font-size="9" fill="#2e7dd1" font-weight="600">HTTPS :443</text>
+
+        <!-- nginx → Next.js -->
+        <line x1="280" y1="195" x2="318" y2="95" stroke="#2e7dd1" stroke-width="1.8" marker-end="url(#arr)"/>
+        <text x="315" y="150" text-anchor="middle" font-size="9" fill="#2e7dd1" font-weight="600">proxy /*  ·  /api/auth/*</text>
+
+        <!-- nginx → Keycloak -->
+        <line x1="280" y1="212" x2="318" y2="207" stroke="#c47a1a" stroke-width="1.8" marker-end="url(#arrg)"/>
+        <text x="300" y="185" text-anchor="middle" font-size="9" fill="#c47a1a" font-weight="600">proxy /auth/*</text>
+
+        <!-- nginx → Spring Boot -->
+        <line x1="280" y1="252" x2="318" y2="330" stroke="#1a7a4a" stroke-width="1.8" marker-end="url(#arr)"/>
+        <text x="322" y="285" text-anchor="middle" font-size="9" fill="#1a7a4a" font-weight="600">/api/* + X-User-Roles</text>
+
+        <!-- Next.js → nginx (token exchange via localhost) -->
+        <path d="M 340 125 Q 300 140 272 162" fill="none" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr2)"/>
+        <text x="245" y="142" text-anchor="middle" font-size="8.5" fill="#94a3b8">token exch. (via localhost)</text>
+
+        <!-- Spring Boot → Keycloak (admin) -->
+        <line x1="395" y1="290" x2="395" y2="257" stroke="#c47a1a" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arrg)"/>
+        <text x="455" y="275" text-anchor="middle" font-size="9" fill="#c47a1a" font-weight="600">Admin API</text>
+
+        <!-- Spring Boot → PostgreSQL -->
+        <line x1="470" y1="337" x2="558" y2="337" stroke="#6b21a8" stroke-width="1.8" marker-end="url(#arrp)"/>
+        <text x="514" y="329" text-anchor="middle" font-size="9" fill="#6b21a8" font-weight="600">JDBC</text>
+
+        <!-- Legend -->
+        <rect x="490" y="30" width="255" height="86" rx="8" fill="#f4f7fb" stroke="#dce6f5"/>
+        <text x="504" y="48" font-size="9.5" font-weight="700" fill="#0f2744">Legend</text>
+        <line x1="504" y1="62" x2="524" y2="62" stroke="#2e7dd1" stroke-width="1.8"/>
+        <text x="530" y="66" font-size="9.5" fill="#5a6e8a">Public HTTPS / frontend proxy</text>
+        <line x1="504" y1="80" x2="524" y2="80" stroke="#1a7a4a" stroke-width="1.8"/>
+        <text x="530" y="84" font-size="9.5" fill="#5a6e8a">Verified API proxy</text>
+        <line x1="504" y1="98" x2="524" y2="98" stroke="#c47a1a" stroke-width="1.4" stroke-dasharray="5,3"/>
+        <text x="530" y="102" font-size="9.5" fill="#5a6e8a">OIDC / Keycloak Admin API</text>
+      </svg>
+    </div>
+
+    <h3>Communication Summary</h3>
+    <table>
+      <thead>
+        <tr><th>From</th><th>To</th><th>Protocol</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Browser</td><td>nginx (:443)</td><td>HTTPS</td><td>All traffic — single public entry point</td></tr>
+        <tr><td>nginx</td><td>Next.js (internal)</td><td>HTTP proxy</td><td>Frontend pages and NextAuth callbacks</td></tr>
+        <tr><td>nginx</td><td>Keycloak (internal)</td><td>HTTP proxy (/auth/)</td><td>OIDC login page, token endpoints</td></tr>
+        <tr><td>nginx Lua</td><td>Keycloak (internal)</td><td>HTTP</td><td>Fetch RS256 public key (cached 1 h)</td></tr>
+        <tr><td>nginx</td><td>Spring Boot (internal)</td><td>HTTP + X-User-Roles</td><td>Proxied API calls after JWT validation</td></tr>
+        <tr><td>Next.js (server)</td><td>nginx (:443)</td><td>HTTPS via <code>localhost</code></td><td>Token exchange, userinfo — routed through nginx (container <code>/etc/hosts</code> remaps <code>localhost</code> → gateway IP)</td></tr>
+        <tr><td>Spring Boot</td><td>Keycloak Admin API</td><td>HTTP + Admin Token</td><td>Create / delete Keycloak users on registration</td></tr>
+        <tr><td>Spring Boot</td><td>PostgreSQL</td><td>JDBC (TCP)</td><td>All database read / write operations</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 4 — AUTH ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 4</div>
+    <h2>Authentication &amp; Authorization</h2>
+    <p>The system uses the <strong>OAuth2 Authorization Code flow</strong> via Keycloak. The browser redirects through nginx to the Keycloak login page at <code>/auth/</code>. JWT validation happens in the <strong>nginx Lua layer</strong> — Spring Boot never sees raw JWTs. Instead, nginx injects the validated roles as an <code>X-User-Roles</code> header that Spring Security reads via <code>GatewayAuthenticationFilter</code>.</p>
+
+    <div class="info-box"><strong>Custom Keycloak Theme</strong> — Keycloak uses a custom <code>bankapp</code> login theme (FreeMarker templates + CSS) that matches BankApp's visual design: blue primary, dark navy text, white card on light-grey background. Mounted via Docker volume <code>./keycloak/themes:/opt/keycloak/themes:ro</code> and activated via <code>realm-export.json</code> → <code>"loginTheme": "bankapp"</code>. The Next.js login page shows only a "Sign In" button — Keycloak handles the actual credential form, including forced temporary password change.</div>
+
+    <h3>Login Flow</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <div class="flow-title">User visits the app</div>
+          <div class="flow-desc">Next.js middleware detects no session → redirects to <code>/login</code> page.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <div class="flow-title">Redirect to Keycloak (via nginx)</div>
+          <div class="flow-desc">Clicking "Sign In" sends the user to <code>https://localhost/auth/realms/bankapp/protocol/openid-connect/auth</code>. nginx proxies <code>/auth/*</code> to Keycloak internally — the browser never hits Keycloak directly.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <div class="flow-title">User authenticates on Keycloak</div>
+          <div class="flow-desc">Keycloak displays the login form. Credentials are validated against the Keycloak user store. Passwords never touch Next.js or Spring Boot.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-body">
+          <div class="flow-title">Authorization code returned</div>
+          <div class="flow-desc">Keycloak redirects back to <code>https://localhost/api/auth/callback/keycloak</code> with a one-time auth code. nginx routes <code>/api/auth/*</code> to Next.js (before <code>/api/*</code> — more specific prefix wins).</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-body">
+          <div class="flow-title">NextAuth exchanges code for tokens</div>
+          <div class="flow-desc">Server-side call to the Keycloak token endpoint at <code>https://localhost/auth/realms/bankapp/...</code>. The container's <code>/etc/hosts</code> remaps <code>localhost</code> to the gateway IP, so this backchannel call is routed <strong>through nginx</strong> (same issuer the browser sees). Returns <code>access_token</code> (JWT), <code>id_token</code>, and <code>refresh_token</code>. Roles extracted from <code>realm_access.roles</code> and stored in an encrypted session cookie.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-body">
+          <div class="flow-title">Session established — user lands on dashboard</div>
+          <div class="flow-desc">NextAuth stores an encrypted session cookie. Every subsequent page load reads roles from the session and renders the role-appropriate UI.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>API Request Flow</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <div class="flow-title">Axios interceptor attaches token</div>
+          <div class="flow-desc">Every API call from Next.js automatically gets <code>Authorization: Bearer &lt;jwt&gt;</code> added by a request interceptor in <code>lib/api.ts</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <div class="flow-title">nginx validates JWT (Lua)</div>
+          <div class="flow-desc"><code>jwt_verify.lua</code> runs in nginx <code>access_by_lua_file</code>. It fetches Keycloak's RS256 public key from <code>http://keycloak:8080/auth/realms/bankapp</code> (cached 1 hour in <code>lua_shared_dict</code>), verifies the JWT signature, and injects <code>X-User-Roles</code>, <code>X-User-Email</code>, <code>X-User-Sub</code> headers.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <div class="flow-title">GatewayAuthenticationFilter reads headers</div>
+          <div class="flow-desc">Spring Security's <code>GatewayAuthenticationFilter</code> reads <code>X-User-Roles</code> and builds a <code>UsernamePasswordAuthenticationToken</code> with <code>ROLE_USER</code> / <code>ROLE_BANKMANAGER</code> / <code>ROLE_ADMIN</code> authorities. Spring Boot never parses JWTs itself.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-body">
+          <div class="flow-title">SecurityConfig enforces access</div>
+          <div class="flow-desc">Each route is checked against the rules in <code>SecurityConfig.java</code>. If the role doesn't match, Spring returns <code>403 Forbidden</code> before the controller method ever runs.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-body">
+          <div class="flow-title">Controller handles the request</div>
+          <div class="flow-desc">Business logic executes, DB is queried, and a JSON response is returned.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>JWT Token Structure</h3>
+    <pre><code>{
+  <span class="key">"sub"</span>: <span class="str">"uuid-of-user-in-keycloak"</span>,
+  <span class="key">"preferred_username"</span>: <span class="str">"johndoe"</span>,
+  <span class="key">"email"</span>: <span class="str">"john@example.com"</span>,
+  <span class="key">"realm_access"</span>: {
+    <span class="key">"roles"</span>: [<span class="str">"user"</span>]           <span class="cmt">// or "BankManager", "admin"</span>
+  },
+  <span class="key">"exp"</span>: <span class="num">1756300000</span>,           <span class="cmt">// expiry — token auto-refreshed by NextAuth</span>
+  <span class="key">"iss"</span>: <span class="str">"https://localhost/auth/realms/bankapp"</span>   <span class="cmt">// Keycloak reads X-Forwarded-* from nginx (KC_PROXY_HEADERS)</span>
+}</code></pre>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 5 — RBAC ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 5</div>
+    <h2>Role-Based Access Control</h2>
+    <p>Three roles are defined in the Keycloak <code>bankapp</code> realm. Each role controls both what the frontend displays and what the backend API permits.</p>
+
+    <div class="role-grid">
+      <div class="role-card admin">
+        <span class="role-badge">Admin</span>
+        <div class="role-name">Administrator</div>
+        <ul class="role-list">
+          <li>View all customers</li>
+          <li>Create / edit / delete customers</li>
+          <li>Register new users (Keycloak + DB)</li>
+          <li>Create / view / manage BankManagers</li>
+          <li>View all accounts (bank-wide)</li>
+          <li>Create / edit / delete accounts</li>
+          <li>View all transactions</li>
+          <li>View all payments (bank-wide)</li>
+          <li>View account detail page</li>
+          <li>Bank-wide dashboard stats</li>
+        </ul>
+      </div>
+      <div class="role-card manager">
+        <span class="role-badge">BankManager</span>
+        <div class="role-name">Bank Manager</div>
+        <ul class="role-list">
+          <li>View all customers</li>
+          <li>Register new users (Keycloak + DB)</li>
+          <li>View all accounts (bank-wide)</li>
+          <li>View all transactions</li>
+          <li>View all payments (bank-wide)</li>
+          <li>View account detail page</li>
+          <li>Bank-wide dashboard stats</li>
+          <li style="text-decoration:line-through;opacity:0.4;">No delete operations</li>
+          <li style="text-decoration:line-through;opacity:0.4;">No transfers or beneficiaries</li>
+        </ul>
+      </div>
+      <div class="role-card user">
+        <span class="role-badge">User</span>
+        <div class="role-name">Customer</div>
+        <ul class="role-list">
+          <li>View own accounts only</li>
+          <li>View own transactions</li>
+          <li>Idempotent fund transfer</li>
+          <li>Manage own beneficiaries</li>
           <li>View own payments</li>
-          <li>Edit own profile</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Public</h3>
-        <ul>
-          <li><code>GET /api/v1/health</code></li>
-          <li><code>GET /api/v1/info</code></li>
+          <li>View and edit own profile</li>
+          <li>Personal dashboard (own balance)</li>
+          <li style="text-decoration:line-through;opacity:0.4;">No access to other customers</li>
+          <li style="text-decoration:line-through;opacity:0.4;">No bank-wide data</li>
         </ul>
       </div>
     </div>
-  </div>
 
-  <!-- System -->
-  <div class="section">
-    <h2>System</h2>
+    <h3>SecurityConfig Rules (Spring Boot)</h3>
     <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
+      <thead>
+        <tr><th>Method</th><th>Endpoint Pattern</th><th>Required Role</th></tr>
+      </thead>
       <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/health</code></td><td><span class="roles"><span class="role role-public">Public</span></span></td><td>Health check</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/info</code></td><td><span class="roles"><span class="role role-public">Public</span></span></td><td>Build &amp; git info</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Customers -->
-  <div class="section">
-    <h2>Customers</h2>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge post">POST</span></td><td><code>/api/v2/customers</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Create Keycloak account + DB customer record atomically</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/customers</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>List all customers</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Get customer by ID</td></tr>
-        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Update customer details</td></tr>
-        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Delete customer</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Managers -->
-  <div class="section">
-    <h2>Managers</h2>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/managers</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>List all BankManager accounts from Keycloak</td></tr>
-        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/managers</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Create a Keycloak account with BankManager role</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Accounts -->
-  <div class="section">
-    <h2>Accounts</h2>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → all accounts; User → own accounts only</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts/lookup?accountNo=</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Look up account holder name by account number (for transfer confirmation)</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Get account by ID</td></tr>
-        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/accounts</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span></span></td><td>Open a new account for a customer</td></tr>
-        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Update account</td></tr>
-        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="roles"><span class="role role-admin">Admin</span></span></td><td>Delete account</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Beneficiaries -->
-  <div class="section">
-    <h2>Beneficiaries</h2>
-    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Only customers (USER role) can add, edit, or remove beneficiaries. Staff can view but not modify.</p>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/beneficiaries</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff + <code>?customerId=</code> → that customer's list; User → own list</td></tr>
-        <tr><td><span class="badge post">POST</span></td><td><code>/api/v1/beneficiaries</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Add beneficiary to own list</td></tr>
-        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Update nickname</td></tr>
-        <tr><td><span class="badge delete">DELETE</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Remove from own list</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Transfer (Payments) -->
-  <div class="section">
-    <h2>Fund Transfer</h2>
-    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Only customers (USER role) can transfer. The preview step lets you confirm details before paying. The POST is idempotent — resending the same <code>paymentId</code> UUID never double-charges.</p>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr>
-          <td><span class="badge get">GET</span></td>
-          <td><code>/api/v2/transfer/preview?fromAccountId=&amp;recipientAccountNo=&amp;amount=</code></td>
-          <td><span class="roles"><span class="role role-user">User</span></span></td>
-          <td>Preview: returns from account, to account holder name, amount, estimated time — show to customer before they confirm</td>
-        </tr>
-        <tr>
-          <td><span class="badge post">POST</span></td>
-          <td><code>/api/v2/transfer</code></td>
-          <td><span class="roles"><span class="role role-user">User</span></span></td>
-          <td>Execute transfer. Client provides a <code>paymentId</code> UUID. If already COMPLETED → returns cached result. If PENDING → 409.</td>
-        </tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/health</code>, <code>/api/v1/info</code></td><td><span class="badge badge-all">Public</span></td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v2/customers</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">BANKMANAGER</span></td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/customers/**</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">BANKMANAGER</span></td></tr>
+        <tr><td><span class="badge badge-put">PUT</span> <span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/customers/**</code></td><td><span class="badge badge-admin">ADMIN</span></td></tr>
+        <tr><td><span class="badge badge-get">GET</span> <span class="badge badge-post">POST</span></td><td><code>/api/v1/managers</code></td><td><span class="badge badge-admin">ADMIN</span></td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v1/accounts</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">BANKMANAGER</span></td></tr>
+        <tr><td><span class="badge badge-get">GET</span> <span class="badge badge-put">PUT</span> <span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/accounts/**</code></td><td>Staff: all · User: own (runtime RBAC)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/transactions?accountId=&amp;page=&amp;size=</code></td><td>Staff: any · User: own (ownership enforced)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/beneficiaries/**</code></td><td>Authenticated</td></tr>
+        <tr><td><span class="badge badge-post">POST</span> <span class="badge badge-put">PUT</span> <span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/beneficiaries/**</code></td><td><span class="badge badge-user">USER</span> only</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v2/transfer/preview</code></td><td><span class="badge badge-user">USER</span></td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v2/transfer</code></td><td><span class="badge badge-user">USER</span></td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/payments?page=&amp;size=</code></td><td>Authenticated</td></tr>
+        <tr><td><span class="badge badge-get">GET</span> <span class="badge badge-put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td></tr>
       </tbody>
     </table>
 
-    <div style="margin-top:16px">
-      <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:8px;color:#374151">Payment confirmation flow</h3>
-      <pre>1. GET /api/v2/transfer/preview?fromAccountId=&lt;id&gt;&recipientAccountNo=ACC-001&amount=500
-   → { fromAccountNo, fromAccountBalance, toAccountNo, toAccountName, amount, estimatedAt }
+    <h3>Frontend Navigation by Role</h3>
+    <table>
+      <thead>
+        <tr><th>Page</th><th>Admin</th><th>BankManager</th><th>User</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dashboard</td><td>✅ Bank-wide stats</td><td>✅ Bank-wide stats</td><td>✅ Personal stats</td></tr>
+        <tr><td>Customers</td><td>✅ Full CRUD + Register</td><td>✅ View + Register</td><td>❌ Hidden</td></tr>
+        <tr><td>Managers</td><td>✅ View all managers</td><td>❌ Hidden</td><td>❌ Hidden</td></tr>
+        <tr><td>Accounts</td><td>✅ All accounts, full CRUD</td><td>✅ All accounts, read-only</td><td>✅ Own accounts only</td></tr>
+        <tr><td>Account Detail</td><td>✅</td><td>✅</td><td>❌ Redirected</td></tr>
+        <tr><td>Transactions</td><td>✅ All accounts</td><td>✅ All accounts</td><td>✅ Own accounts</td></tr>
+        <tr><td>Payments</td><td>✅ All payments</td><td>✅ All payments</td><td>✅ Own payments</td></tr>
+        <tr><td>Transfer</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ Idempotent transfer</td></tr>
+        <tr><td>Beneficiaries</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ Add / remove</td></tr>
+        <tr><td>Profile</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ View and edit</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-2. Show customer: "Send £500 from ACC-XXXX to John Doe (ACC-001) at 14:32?"
+<!-- ═══════════════════════════════════════════ PAGE 6 — API ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 6</div>
+    <h2>API Contracts</h2>
+    <p>All endpoints require <code>Authorization: Bearer &lt;token&gt;</code> (except health / info). All responses are JSON. Breaking changes bump the version — stable resources use <code>/api/v1</code>, changed contracts use <code>/api/v2</code>.</p>
 
-3. POST /api/v2/transfer  { paymentId: &lt;new-uuid&gt;, fromAccountId, recipientAccountNo, amount, note }
-   → PaymentResponse with status COMPLETED / FAILED</pre>
+    <div class="info-box"><strong>ApiResponse&lt;T&gt; Wrapper</strong> — every successful and error response is enveloped in a consistent shape:<br><br>
+      <code>{ "status": 200, "message": "Customers retrieved", "data": [...], "timestamp": "2026-10-04T10:30:00" }</code><br><br>
+      Error responses set <code>"data": null</code> and <code>"status"</code> to the HTTP error code. The frontend Axios interceptor in <code>lib/api.ts</code> unwraps <code>response.data.data → response.data</code> transparently so all existing API call code works unchanged.
     </div>
-  </div>
 
-  <!-- Payments List -->
-  <div class="section">
-    <h2>Payment History</h2>
-    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">All list endpoints support pagination: <code>?page=0&amp;size=20&amp;sort=initiatedAt,desc</code>. The response header <code>X-Total-Count</code> carries the total number of records.</p>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/payments</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → all (optional <code>?accountId=</code>); User → own. Paginated.</td></tr>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/payments/{paymentId}</code></td><td><span class="roles"><span class="role role-user">Authenticated</span></span></td><td>Get single payment by ID</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <h3>System</h3>
 
-  <!-- Transactions -->
-  <div class="section">
-    <h2>Transactions</h2>
-    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:12px">Returns all debit/credit entries for an account. Supports pagination: <code>?page=0&amp;size=20</code>. Default sort: newest first. <code>X-Total-Count</code> in response headers.</p>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/transactions?accountId=</code></td><td><span class="roles"><span class="role role-admin">Admin</span><span class="role role-manager">BankManager</span><span class="role role-user">User</span></span></td><td>Staff → any account; User → own accounts only. Paginated.</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Profile -->
-  <div class="section">
-    <h2>Profile</h2>
-    <table>
-      <thead><tr><th>Method</th><th>URL</th><th>Access</th><th>Description</th></tr></thead>
-      <tbody>
-        <tr><td><span class="badge get">GET</span></td><td><code>/api/v1/profile</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Get own profile</td></tr>
-        <tr><td><span class="badge put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="roles"><span class="role role-user">User</span></span></td><td>Update firstName, lastName, phoneNumber (email &amp; PAN are read-only)</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Error format -->
-  <div class="section">
-    <h2>Error Response Format</h2>
-    <pre>{
-  "status": 400,
-  "error": "Invalid Data",
-  "message": "A customer with this email or PAN already exists.",
-  "timestamp": "2026-09-08T10:00:00"
-}</pre>
-    <table style="margin-top:16px">
-      <thead><tr><th>Exception</th><th>HTTP Status</th></tr></thead>
-      <tbody>
-        <tr><td><code>ResourceNotFoundException</code></td><td>404 Not Found</td></tr>
-        <tr><td><code>InsufficientBalanceException</code></td><td>400 Bad Request</td></tr>
-        <tr><td><code>MethodArgumentNotValidException</code></td><td>400 Bad Request</td></tr>
-        <tr><td><code>DataIntegrityViolationException</code></td><td>400 Bad Request</td></tr>
-        <tr><td>Keycloak conflict (409)</td><td>409 Conflict</td></tr>
-        <tr><td><code>RestClientException</code></td><td>502 Bad Gateway</td></tr>
-        <tr><td>Everything else</td><td>500 Internal Server Error</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="section">
-    <h2>Pagination</h2>
-    <div class="info-grid">
-      <div class="card">
-        <h3>Request params</h3>
-        <ul>
-          <li><code>page</code> — zero-based page number (default 0)</li>
-          <li><code>size</code> — items per page (default 20)</li>
-          <li><code>sort</code> — field,direction e.g. <code>transactionTime,desc</code></li>
-        </ul>
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-get">GET</span>
+        <span class="endpoint-path">/api/v1/health</span>
+        <span class="badge badge-pub" style="margin-left:8px;">Public</span>
+        <span class="endpoint-desc">Application health check</span>
       </div>
-      <div class="card">
-        <h3>Response</h3>
-        <ul>
-          <li>Body: <code>{ content: [...], totalElements, totalPages, number, size }</code></li>
-          <li>Header: <code>X-Total-Count: 150</code></li>
-        </ul>
+      <div class="endpoint-body">
+        <h4>Response — 200 OK</h4>
+        <pre><code><span class="str">"UP"</span></code></pre>
       </div>
-      <div class="card">
-        <h3>Paginated endpoints</h3>
-        <ul>
-          <li><code>GET /api/v1/transactions</code></li>
-          <li><code>GET /api/v1/payments</code></li>
-        </ul>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-get">GET</span>
+        <span class="endpoint-path">/api/v1/info</span>
+        <span class="badge badge-pub" style="margin-left:8px;">Public</span>
+        <span class="endpoint-desc">Build and git metadata</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Response — 200 OK</h4>
+        <pre><code>{
+  <span class="key">"appName"</span>: <span class="str">"Banfico-Training-program"</span>,
+  <span class="key">"version"</span>: <span class="str">"0.0.1-SNAPSHOT"</span>,
+  <span class="key">"branch"</span>: <span class="str">"main"</span>,
+  <span class="key">"commitId"</span>: <span class="str">"41ba0a1"</span>,
+  <span class="key">"commitTime"</span>: <span class="str">"2026-09-08T11:00:00Z"</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <h3>Customer Creation</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-post">POST</span>
+        <span class="endpoint-path">/api/v2/customers</span>
+        <span class="badge badge-admin" style="margin-left:8px;">ADMIN</span>
+        <span class="badge badge-manager">BANKMANAGER</span>
+        <span class="endpoint-desc">Atomic saga: Keycloak user + Customer record + first Account in one @Transactional call</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Request Body</h4>
+        <pre><code>{
+  <span class="key">"firstName"</span>: <span class="str">"John"</span>,
+  <span class="key">"lastName"</span>: <span class="str">"Doe"</span>,
+  <span class="key">"email"</span>: <span class="str">"john@example.com"</span>,
+  <span class="key">"pan"</span>: <span class="str">"ABCDE1234F"</span>,          <span class="cmt">// exactly 10 chars, auto-uppercased</span>
+  <span class="key">"phoneNumber"</span>: <span class="str">"9876543210"</span>,     <span class="cmt">// 10–20 digits</span>
+  <span class="key">"username"</span>: <span class="str">"johndoe"</span>,
+  <span class="key">"temporaryPassword"</span>: <span class="str">"Pass@1234"</span>,  <span class="cmt">// min 8 chars, forces change on first login</span>
+  <span class="key">"accountType"</span>: <span class="str">"SAVINGS"</span>,          <span class="cmt">// SAVINGS | CURRENT | FIXED</span>
+  <span class="key">"initialBalance"</span>: <span class="num">50000</span>
+}</code></pre>
+        <h4>Response — 201 Created (data field of ApiResponse)</h4>
+        <pre><code>{
+  <span class="key">"customerId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"firstName"</span>: <span class="str">"John"</span>,
+  <span class="key">"lastName"</span>: <span class="str">"Doe"</span>,
+  <span class="key">"email"</span>: <span class="str">"john@example.com"</span>,
+  <span class="key">"pan"</span>: <span class="str">"ABCDE1234F"</span>,
+  <span class="key">"phoneNumber"</span>: <span class="str">"9876543210"</span>,
+  <span class="key">"keycloakUserId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"accountId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"accountNo"</span>: <span class="str">"847392018364"</span>,      <span class="cmt">// auto-generated 12-digit unique number</span>
+  <span class="key">"accountType"</span>: <span class="str">"SAVINGS"</span>,
+  <span class="key">"balance"</span>: <span class="num">50000</span>
+}</code></pre>
       </div>
     </div>
   </div>
+</div>
 
-</main>
+<!-- ═══════════════════════════════════════════ PAGE 7 — API cont. ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <h3>Customers</h3>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/customers</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">MANAGER</span></td><td>List all customers</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">MANAGER</span></td><td>Get customer by UUID</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>Update customer</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/customers/{id}</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>Delete customer</td></tr>
+      </tbody>
+    </table>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-post">POST</span>
+        <span class="endpoint-path">/api/v1/customers</span>
+        <span class="endpoint-desc">Customer request / response shape</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Request Body</h4>
+        <pre><code>{
+  <span class="key">"firstName"</span>: <span class="str">"Jane"</span>,
+  <span class="key">"lastName"</span>: <span class="str">"Smith"</span>,
+  <span class="key">"email"</span>: <span class="str">"jane@example.com"</span>,
+  <span class="key">"pan"</span>: <span class="str">"BCDEF2345G"</span>,
+  <span class="key">"phoneNumber"</span>: <span class="str">"8765432109"</span>
+}</code></pre>
+        <h4>Response — 201 Created</h4>
+        <pre><code>{
+  <span class="key">"id"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"firstName"</span>: <span class="str">"Jane"</span>,
+  <span class="key">"lastName"</span>: <span class="str">"Smith"</span>,
+  <span class="key">"email"</span>: <span class="str">"jane@example.com"</span>,
+  <span class="key">"pan"</span>: <span class="str">"BCDEF2345G"</span>,
+  <span class="key">"phoneNumber"</span>: <span class="str">"8765432109"</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <h3>Accounts</h3>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/accounts</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">MANAGER</span></td><td>All accounts (bank-wide)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">MANAGER</span></td><td>Single account by UUID</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/accounts/lookup?accountNo=</code></td><td>Authenticated</td><td>Look up by account number (e.g. SB001001)</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v1/accounts</code></td><td><span class="badge badge-admin">ADMIN</span> <span class="badge badge-manager">BANKMANAGER</span></td><td>Create account for a customer</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>Update account type / balance</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/accounts/{id}</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>Delete account</td></tr>
+      </tbody>
+    </table>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-post">POST</span>
+        <span class="endpoint-path">/api/v1/accounts</span>
+        <span class="endpoint-desc">Account request / response shape</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Request Body</h4>
+        <pre><code>{
+  <span class="key">"accountType"</span>: <span class="str">"SAVINGS"</span>,       <span class="cmt">// SAVINGS | CURRENT | FIXED</span>
+  <span class="key">"balance"</span>: <span class="num">50000</span>,
+  <span class="key">"customerId"</span>: <span class="str">"uuid-of-customer"</span>
+                                    <span class="cmt">// accountNo is NOT supplied — auto-generated server-side</span>
+}</code></pre>
+        <h4>Response — 201 Created (data field of ApiResponse)</h4>
+        <pre><code>{
+  <span class="key">"id"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"accountNo"</span>: <span class="str">"847392018364"</span>,     <span class="cmt">// 12-digit unique number, server-generated</span>
+  <span class="key">"accountType"</span>: <span class="str">"SAVINGS"</span>,
+  <span class="key">"balance"</span>: <span class="num">50000</span>,
+  <span class="key">"customerId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"customerName"</span>: <span class="str">"Jane Smith"</span>
+}</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 8 — API cont. ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <h3>Managers</h3>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/managers</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>List all bank managers</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v1/managers</code></td><td><span class="badge badge-admin">ADMIN</span></td><td>Create a new bank manager</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Profile</h3>
+    <div class="info-box">USER role only. Scoped to the authenticated user via JWT email — no ID in the URL.</div>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Get own profile (Customer record)</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Update own profile (firstName, lastName, phoneNumber)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Transactions</h3>
+    <div class="info-box">Unified endpoint — staff can query any account; users can only query their own accounts (ownership enforced via JWT email). Transactions are created automatically when a transfer completes — there is no manual creation endpoint.</div>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/transactions?accountId=&amp;page=0&amp;size=20</code></td><td>Authenticated</td><td>Staff: any account; User: own accounts only. Paginated — returns <code>Page&lt;TransactionResponse&gt;</code> with <code>X-Total-Count</code> header</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Fund Transfer</h3>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-get">GET</span>
+        <span class="endpoint-path">/api/v2/transfer/preview</span>
+        <span class="badge badge-user" style="margin-left:8px;">USER</span>
+        <span class="endpoint-desc">Server-side preview — validates accounts and returns confirmed details before the user pays</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Query Params</h4>
+        <pre><code>?fromAccountId=uuid&amp;recipientAccountNo=SB002001&amp;amount=1000</code></pre>
+        <h4>Response — 200 OK (TransferPreviewResponse)</h4>
+        <pre><code>{
+  <span class="key">"fromAccountNo"</span>: <span class="str">"SB001001"</span>,
+  <span class="key">"fromAccountBalance"</span>: <span class="num">48000</span>,
+  <span class="key">"toAccountNo"</span>: <span class="str">"SB002001"</span>,
+  <span class="key">"toAccountName"</span>: <span class="str">"Priya Sharma"</span>,
+  <span class="key">"amount"</span>: <span class="num">1000</span>,
+  <span class="key">"estimatedAt"</span>: <span class="str">"2026-10-02T14:30:00"</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="endpoint">
+      <div class="endpoint-header">
+        <span class="badge badge-post">POST</span>
+        <span class="endpoint-path">/api/v2/transfer</span>
+        <span class="badge badge-user" style="margin-left:8px;">USER</span>
+        <span class="endpoint-desc">Idempotent transfer — client provides a UUID <code>paymentId</code> as idempotency key</span>
+      </div>
+      <div class="endpoint-body">
+        <h4>Request Body</h4>
+        <pre><code>{
+  <span class="key">"paymentId"</span>: <span class="str">"uuid"</span>,          <span class="cmt">// client-generated idempotency key</span>
+  <span class="key">"fromAccountId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"recipientAccountNo"</span>: <span class="str">"SB002001"</span>,
+  <span class="key">"amount"</span>: <span class="num">1000</span>,
+  <span class="key">"note"</span>: <span class="str">"Rent"</span>           <span class="cmt">// optional</span>
+}</code></pre>
+        <h4>Response — 200 OK (PaymentResponse)</h4>
+        <pre><code>{
+  <span class="key">"paymentId"</span>: <span class="str">"uuid"</span>,
+  <span class="key">"fromAccountNo"</span>: <span class="str">"SB001001"</span>,
+  <span class="key">"toAccountNo"</span>: <span class="str">"SB002001"</span>,
+  <span class="key">"toAccountName"</span>: <span class="str">"Priya Sharma"</span>,
+  <span class="key">"amount"</span>: <span class="num">1000</span>,
+  <span class="key">"note"</span>: <span class="str">"Rent"</span>,
+  <span class="key">"status"</span>: <span class="str">"COMPLETED"</span>,   <span class="cmt">// PENDING | COMPLETED | FAILED</span>
+  <span class="key">"initiatedByName"</span>: <span class="str">"Riyaz Ahmed"</span>,
+  <span class="key">"initiatedAt"</span>: <span class="str">"2026-09-08T10:30:00"</span>,
+  <span class="key">"completedAt"</span>: <span class="str">"2026-09-08T10:30:01"</span>,
+  <span class="key">"failureReason"</span>: <span class="kw">null</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <h3>Payments</h3>
+    <div class="info-box">Staff see all payments bank-wide; users see only their own payments (filtered by JWT). Both endpoints are paginated — response body is Spring <code>Page&lt;PaymentResponse&gt;</code> and total is also available via the <code>X-Total-Count</code> response header.</div>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/payments?page=0&amp;size=20</code></td><td>Authenticated</td><td>Staff: all payments; User: own payments</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/payments/{paymentId}</code></td><td>Authenticated</td><td>Single payment by UUID</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Beneficiaries</h3>
+    <div class="info-box">Unified endpoint — staff pass <code>?customerId=</code> to operate on a specific customer's list; users operate on their own list automatically via JWT.</div>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/beneficiaries</code></td><td>Authenticated</td><td>User: own list; Staff + <code>?customerId=</code>: specific customer</td></tr>
+        <tr><td><span class="badge badge-post">POST</span></td><td><code>/api/v1/beneficiaries</code></td><td><span class="badge badge-user">USER</span></td><td>Add to own beneficiary list</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="badge badge-user">USER</span></td><td>Update nickname</td></tr>
+        <tr><td><span class="badge badge-delete">DELETE</span></td><td><code>/api/v1/beneficiaries/{id}</code></td><td><span class="badge badge-user">USER</span></td><td>Remove own beneficiary</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 9 — DATA MODEL ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 7</div>
+    <h2>Data Model</h2>
+    <p>Five entities stored in PostgreSQL. Hibernate manages the schema via <code>ddl-auto=update</code>.</p>
+
+    <div class="diagram-wrap">
+      <svg width="680" height="470" viewBox="0 0 680 470" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+        <defs>
+          <marker id="db-arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#1d5fa8"/>
+          </marker>
+        </defs>
+
+        <!-- Customer -->
+        <rect x="30" y="60" width="180" height="200" rx="12" fill="#f0f6ff" stroke="#1d5fa8" stroke-width="1.5"/>
+        <rect x="30" y="60" width="180" height="36" rx="12" fill="#1d5fa8"/>
+        <rect x="30" y="84" width="180" height="12" rx="0" fill="#1d5fa8"/>
+        <text x="120" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="white">Customer</text>
+        <text x="46" y="116" fill="#0f2744" font-size="11"><tspan font-weight="600">🔑</tspan> id: UUID</text>
+        <text x="46" y="136" fill="#5a6e8a" font-size="11">firstName: varchar(20)</text>
+        <text x="46" y="156" fill="#5a6e8a" font-size="11">lastName: varchar(20)</text>
+        <text x="46" y="176" fill="#5a6e8a" font-size="11">email: varchar(50)</text>
+        <text x="46" y="196" fill="#5a6e8a" font-size="11">pan: varchar(10) unique</text>
+        <text x="46" y="216" fill="#5a6e8a" font-size="11">phoneNumber: varchar(20)</text>
+
+        <!-- Account -->
+        <rect x="260" y="30" width="180" height="210" rx="12" fill="#f0fff5" stroke="#1a7a4a" stroke-width="1.5"/>
+        <rect x="260" y="30" width="180" height="36" rx="12" fill="#1a7a4a"/>
+        <rect x="260" y="54" width="180" height="12" rx="0" fill="#1a7a4a"/>
+        <text x="350" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="white">Account</text>
+        <text x="276" y="86" fill="#0f2744" font-size="11"><tspan font-weight="600">🔑</tspan> id: UUID</text>
+        <text x="276" y="106" fill="#5a6e8a" font-size="11">accountNo: varchar (unique)</text>
+        <text x="276" y="126" fill="#5a6e8a" font-size="11">accountType: enum</text>
+        <text x="276" y="146" fill="#5a6e8a" font-size="11">balance: integer</text>
+        <text x="276" y="166" fill="#0f2744" font-size="11"><tspan font-weight="600">🔗</tspan> customer_id: UUID (FK)</text>
+
+        <!-- Transaction -->
+        <rect x="490" y="30" width="175" height="190" rx="12" fill="#fffbf0" stroke="#c47a1a" stroke-width="1.5"/>
+        <rect x="490" y="30" width="175" height="36" rx="12" fill="#c47a1a"/>
+        <rect x="490" y="54" width="175" height="12" rx="0" fill="#c47a1a"/>
+        <text x="577" y="54" text-anchor="middle" font-size="12" font-weight="700" fill="white">Transactions</text>
+        <text x="506" y="86" fill="#0f2744" font-size="11"><tspan font-weight="600">🔑</tspan> id: UUID</text>
+        <text x="506" y="106" fill="#5a6e8a" font-size="11">amount: integer</text>
+        <text x="506" y="126" fill="#5a6e8a" font-size="11">transactionType: enum</text>
+        <text x="506" y="146" fill="#5a6e8a" font-size="11">timestamp: datetime</text>
+        <text x="506" y="166" fill="#0f2744" font-size="11"><tspan font-weight="600">🔗</tspan> account_id: UUID (FK)</text>
+
+        <!-- Beneficiary -->
+        <rect x="260" y="270" width="180" height="60" rx="12" fill="#fdf0ff" stroke="#6b21a8" stroke-width="1.5"/>
+        <rect x="260" y="270" width="180" height="30" rx="12" fill="#6b21a8"/>
+        <rect x="260" y="283" width="180" height="17" rx="0" fill="#6b21a8"/>
+        <text x="350" y="291" text-anchor="middle" font-size="12" font-weight="700" fill="white">Beneficiary</text>
+        <text x="276" y="314" fill="#0f2744" font-size="11"><tspan font-weight="600">🔗</tspan> customer_id · beneficiary_account_id</text>
+
+        <!-- Customer → Account (1:N) -->
+        <line x1="210" y1="120" x2="258" y2="100" stroke="#1d5fa8" stroke-width="1.5" marker-end="url(#db-arr)"/>
+        <text x="225" y="103" font-size="10" fill="#1d5fa8" font-weight="600">1 : N</text>
+
+        <!-- Account → Transaction (1:N) -->
+        <line x1="440" y1="100" x2="488" y2="100" stroke="#1d5fa8" stroke-width="1.5" marker-end="url(#db-arr)"/>
+        <text x="452" y="94" font-size="10" fill="#1d5fa8" font-weight="600">1 : N</text>
+
+        <!-- Customer → Beneficiary -->
+        <line x1="120" y1="260" x2="280" y2="285" stroke="#1d5fa8" stroke-width="1.5" marker-end="url(#db-arr)"/>
+        <text x="168" y="288" font-size="10" fill="#1d5fa8" font-weight="600">1 : N</text>
+
+        <!-- Account → Beneficiary -->
+        <line x1="350" y1="240" x2="350" y2="268" stroke="#1d5fa8" stroke-width="1.5" marker-end="url(#db-arr)"/>
+
+        <!-- Payment -->
+        <rect x="470" y="250" width="195" height="200" rx="12" fill="#f0f4ff" stroke="#3730a3" stroke-width="1.5"/>
+        <rect x="470" y="250" width="195" height="36" rx="12" fill="#3730a3"/>
+        <rect x="470" y="274" width="195" height="12" rx="0" fill="#3730a3"/>
+        <text x="567" y="274" text-anchor="middle" font-size="12" font-weight="700" fill="white">Payment</text>
+        <text x="486" y="306" fill="#0f2744" font-size="11"><tspan font-weight="600">🔑</tspan> id: UUID (paymentId)</text>
+        <text x="486" y="326" fill="#5a6e8a" font-size="11">amount: integer</text>
+        <text x="486" y="346" fill="#5a6e8a" font-size="11">status: enum</text>
+        <text x="486" y="366" fill="#5a6e8a" font-size="11">toAccountNo · toAccountName</text>
+        <text x="486" y="386" fill="#5a6e8a" font-size="11">note · failureReason</text>
+        <text x="486" y="406" fill="#5a6e8a" font-size="11">initiatedAt · completedAt</text>
+        <text x="486" y="426" fill="#0f2744" font-size="11"><tspan font-weight="600">🔗</tspan> from_account_id (FK)</text>
+        <text x="486" y="444" fill="#0f2744" font-size="11"><tspan font-weight="600">🔗</tspan> initiated_by: customer (FK)</text>
+
+        <!-- Account → Payment (1:N) -->
+        <line x1="440" y1="200" x2="468" y2="300" stroke="#3730a3" stroke-width="1.5" marker-end="url(#db-arr)"/>
+        <text x="438" y="260" font-size="10" fill="#3730a3" font-weight="600">1 : N</text>
+      </svg>
+    </div>
+
+    <h3>Entity Descriptions</h3>
+    <table>
+      <thead>
+        <tr><th>Entity</th><th>Key Fields</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Customer</strong></td><td>id, pan, firstName, lastName, email, phoneNumber</td><td>PAN and email are unique. Created via <code>POST /api/v2/customers</code> (Keycloak + DB atomically)</td></tr>
+        <tr><td><strong>Account</strong></td><td>id, accountNo, accountType, balance, customer (FK)</td><td>accountNo is auto-generated server-side (12-digit unique number via ThreadLocalRandom with collision check). Many accounts per customer. Type: SAVINGS, CURRENT, or FIXED</td></tr>
+        <tr><td><strong>Transactions</strong></td><td>id, amount, transactionType, balanceAfter, description, timestamp, account (FK)</td><td>CREDIT adds to balance; DEBIT subtracts. Created automatically when a transfer completes</td></tr>
+        <tr><td><strong>Payment</strong></td><td>id (paymentId), fromAccount (FK), toAccountNo, toAccountName, amount, note, status, initiatedBy (FK), initiatedAt, completedAt, failureReason</td><td>Created by every transfer. paymentId is client-generated UUID (idempotency key). Status: PENDING → COMPLETED / FAILED</td></tr>
+        <tr><td><strong>Beneficiary</strong></td><td>id, customer (FK), beneficiaryAccount (FK), nickname</td><td>Links a customer to another's account for fast transfers. nickname max 50 chars</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Idempotent Fund Transfer</h3>
+    <p>A fund transfer moves money between two accounts and must <strong>never double-charge</strong> if the client retries — a dropped response, a double-click, or a network timeout should not result in two debits. BankApp solves this with a <strong>client-generated idempotency key</strong>: the <code>paymentId</code> (a UUID) is both the primary key of the <code>Payment</code> row and the idempotency token.</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-body">
+          <div class="flow-title">Client generates a paymentId before sending</div>
+          <div class="flow-desc">The frontend creates a fresh UUID (<code>crypto.randomUUID()</code>) and includes it in the <code>POST /api/v2/transfer</code> body. The same UUID is reused for every retry of that one logical transfer.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-body">
+          <div class="flow-title">Server checks if the paymentId already exists</div>
+          <div class="flow-desc">Inside a <code>@Transactional</code> method, the service looks up the <code>Payment</code> by id. If a <code>COMPLETED</code> payment already exists for that UUID, it returns the stored result immediately — no second debit, no second <code>Transaction</code> row.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-body">
+          <div class="flow-title">First-time transfer executes atomically</div>
+          <div class="flow-desc">If the paymentId is new, the service validates ownership and balance, debits the source account, credits the recipient, writes two <code>Transaction</code> rows (DEBIT + CREDIT), and persists the <code>Payment</code> as <code>COMPLETED</code> — all in one DB transaction. If anything fails, the whole transaction rolls back and the payment is marked <code>FAILED</code> with a <code>failureReason</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-body">
+          <div class="flow-title">The paymentId PK guarantees exactly-once</div>
+          <div class="flow-desc">Because <code>paymentId</code> is the primary key, even a race between two concurrent retries cannot insert two rows — the database rejects the duplicate key, so at most one transfer is ever recorded.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box"><strong>Preview before pay</strong> — <code>GET /api/v2/transfer/preview</code> validates the source and recipient accounts and returns the confirmed names and balances <em>before</em> the user commits. The actual transfer is a separate <code>POST /api/v2/transfer</code> call carrying the <code>paymentId</code>, keeping the preview side-effect-free.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 10 — ERROR + LAYERS ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 8</div>
+    <h2>Error Handling</h2>
+    <p><code>GlobalExceptionHandler</code> (<code>@RestControllerAdvice</code>) intercepts every exception thrown from any controller and maps it to a consistent JSON response. No try-catch blocks needed in controllers.</p>
+
+    <h3>Error Response Shape</h3>
+    <p>Errors use the same <code>ApiResponse&lt;T&gt;</code> envelope as success responses. The <code>data</code> field is always <code>null</code> for errors.</p>
+    <pre><code>{
+  <span class="key">"status"</span>: <span class="num">400</span>,
+  <span class="key">"message"</span>: <span class="str">"A customer with this email or PAN already exists."</span>,
+  <span class="key">"data"</span>: <span class="kw">null</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"2026-09-08T10:30:00"</span>
+}</code></pre>
+
+    <table>
+      <thead>
+        <tr><th>Exception</th><th>Cause</th><th>Status</th><th>Message</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="exc-tag">ResourceNotFoundException</span></td><td>Entity not found by ID</td><td>404</td><td>Entity-specific message</td></tr>
+        <tr><td><span class="exc-tag">InsufficientBalanceException</span></td><td>DEBIT > account balance</td><td>400</td><td>Insufficient balance</td></tr>
+        <tr><td><span class="exc-tag">MethodArgumentNotValidException</span></td><td><code>@Valid</code> fails on request body</td><td>400</td><td>All field error messages joined</td></tr>
+        <tr><td><span class="exc-tag">DataIntegrityViolationException</span></td><td>Duplicate PAN/email or value too long</td><td>400</td><td>Friendly DB error message</td></tr>
+        <tr><td><span class="exc-tag">HttpClientErrorException (409)</span></td><td>Username/email exists in Keycloak</td><td>409</td><td>User already exists in Keycloak</td></tr>
+        <tr><td><span class="exc-tag">RestClientException</span></td><td>Keycloak unreachable</td><td>502</td><td>Could not connect to auth service</td></tr>
+        <tr><td><span class="exc-tag">Exception</span></td><td>Any other error</td><td>500</td><td>Internal Server Error</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Registration Rollback</h3>
+    <p>Customer onboarding is a three-step <code>@Transactional</code> saga: (1) create the Keycloak user, (2) save the Customer record, (3) create the first Account. If the DB save fails at any point, the Keycloak user is automatically deleted and the DB transaction is rolled back — leaving no orphaned records anywhere.</p>
+    <pre><code><span class="kw">String</span> keycloakUserId = keycloakAdminService.createUser(...);
+<span class="kw">try</span> {
+    Customer saved = customerRepo.save(customer);   <span class="cmt">// step 2</span>
+    accountService.createAccount(accountRequest);   <span class="cmt">// step 3</span>
+} <span class="kw">catch</span> (Exception dbEx) {
+    keycloakAdminService.deleteUser(keycloakUserId); <span class="cmt">// rollback Keycloak</span>
+    <span class="kw">throw</span> dbEx;                                      <span class="cmt">// DB rolls back via @Transactional</span>
+}</code></pre>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Section 9</div>
+    <h2>Application Layer Architecture</h2>
+
+    <div class="diagram-wrap">
+      <svg width="640" height="200" viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+        <defs>
+          <marker id="l-arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#1d5fa8"/>
+          </marker>
+        </defs>
+
+        <!-- Boxes -->
+        <rect x="20"  y="70" width="110" height="60" rx="10" fill="#0f2744" />
+        <text x="75"  y="96"  text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Controller</text>
+        <text x="75"  y="113" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)">@RestController</text>
+
+        <rect x="170" y="70" width="110" height="60" rx="10" fill="#1a3a5c"/>
+        <text x="225" y="96"  text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Service</text>
+        <text x="225" y="113" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)">Interface + Impl</text>
+
+        <rect x="320" y="70" width="110" height="60" rx="10" fill="#1a5c2a"/>
+        <text x="375" y="96"  text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Repository</text>
+        <text x="375" y="113" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)">JpaRepository</text>
+
+        <rect x="470" y="70" width="110" height="60" rx="10" fill="#2d1b69"/>
+        <text x="525" y="96"  text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Database</text>
+        <text x="525" y="113" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.5)">PostgreSQL</text>
+
+        <!-- Arrows -->
+        <line x1="130" y1="100" x2="168" y2="100" stroke="#1d5fa8" stroke-width="2" marker-end="url(#l-arr)"/>
+        <line x1="280" y1="100" x2="318" y2="100" stroke="#1d5fa8" stroke-width="2" marker-end="url(#l-arr)"/>
+        <line x1="430" y1="100" x2="468" y2="100" stroke="#1d5fa8" stroke-width="2" marker-end="url(#l-arr)"/>
+
+        <!-- Labels above -->
+        <text x="75"  y="58" text-anchor="middle" font-size="10" fill="#5a6e8a">HTTP Request/Response</text>
+        <text x="225" y="58" text-anchor="middle" font-size="10" fill="#5a6e8a">Business Logic</text>
+        <text x="375" y="58" text-anchor="middle" font-size="10" fill="#5a6e8a">Query Generation</text>
+        <text x="525" y="58" text-anchor="middle" font-size="10" fill="#5a6e8a">Persistence</text>
+
+        <!-- Labels below -->
+        <text x="75"  y="148" text-anchor="middle" font-size="10" fill="#5a6e8a">DTO in/out</text>
+        <text x="225" y="148" text-anchor="middle" font-size="10" fill="#5a6e8a">Entity ↔ DTO</text>
+        <text x="375" y="148" text-anchor="middle" font-size="10" fill="#5a6e8a">Entity in/out</text>
+        <text x="525" y="148" text-anchor="middle" font-size="10" fill="#5a6e8a">Tables / Rows</text>
+      </svg>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Layer</th><th>Annotation</th><th>Responsibility</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Controller</strong></td><td><code>@RestController</code></td><td>Receive HTTP, call service, return <code>ResponseEntity&lt;ApiResponse&lt;T&gt;&gt;</code></td></tr>
+        <tr><td><strong>Service Interface</strong></td><td>—</td><td>Defines the contract — what operations exist</td></tr>
+        <tr><td><strong>ServiceImpl</strong></td><td><code>@Service</code></td><td>Implements business rules, maps Entity ↔ DTO, throws exceptions</td></tr>
+        <tr><td><strong>Repository</strong></td><td>extends <code>JpaRepository</code></td><td>Spring generates all SQL automatically from method names and types</td></tr>
+        <tr><td><strong>Entity</strong></td><td><code>@Entity</code></td><td>Maps to a DB table. Never sent to the client directly</td></tr>
+        <tr><td><strong>DTO</strong></td><td>—</td><td>Carries request input (<code>@Valid</code> constraints) and response output</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 11 — DEPLOYMENT ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 10</div>
+    <h2>Deployment Architecture</h2>
+    <p>All services are containerised with Docker and orchestrated via Docker Compose. A shared internal network lets containers reach each other by service name (e.g. <code>keycloak:8080</code>). <strong>Only nginx is port-mapped to the host</strong> — all other services are internal. In production the system is split across two VPC instances (see below).</p>
+
+    <div class="diagram-wrap">
+      <svg width="680" height="300" viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+        <defs>
+          <marker id="dep-arr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#2e7dd1"/>
+          </marker>
+        </defs>
+
+        <!-- Docker Compose boundary -->
+        <rect x="10" y="10" width="660" height="270" rx="16" fill="none" stroke="#dce6f5" stroke-width="2" stroke-dasharray="8,4"/>
+        <text x="30" y="34" font-size="11" fill="#5a6e8a" font-weight="600">🐳  Docker Compose Network — bankapp-network</text>
+
+        <!-- nginx gateway -->
+        <rect x="30" y="50" width="150" height="100" rx="12" fill="#e8f4ff" stroke="#1d5fa8" stroke-width="2"/>
+        <text x="105" y="82" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">nginx / OpenResty</text>
+        <text x="105" y="100" text-anchor="middle" font-size="10" fill="#5a6e8a">JWT verify · TLS · proxy</text>
+        <text x="105" y="116" text-anchor="middle" font-size="10" fill="#1d5fa8" font-weight="600">Host: 80 / 443 ✓</text>
+        <text x="105" y="133" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal: 80/443</text>
+
+        <!-- Keycloak container -->
+        <rect x="220" y="50" width="150" height="100" rx="12" fill="#fff4e0" stroke="#c47a1a" stroke-width="1.5"/>
+        <text x="295" y="82" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">Keycloak</text>
+        <text x="295" y="100" text-anchor="middle" font-size="10" fill="#5a6e8a">v26.7 · bankapp realm</text>
+        <text x="295" y="116" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal only</text>
+        <text x="295" y="133" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal: 8080</text>
+
+        <!-- Spring Boot container -->
+        <rect x="410" y="50" width="150" height="100" rx="12" fill="#e8fff2" stroke="#1a7a4a" stroke-width="1.5"/>
+        <text x="485" y="82" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">Banking API</text>
+        <text x="485" y="100" text-anchor="middle" font-size="10" fill="#5a6e8a">Spring Boot 4.1</text>
+        <text x="485" y="116" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal only</text>
+        <text x="485" y="133" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal: 8080</text>
+
+        <!-- PostgreSQL container -->
+        <rect x="220" y="190" width="150" height="70" rx="12" fill="#f3e8ff" stroke="#6b21a8" stroke-width="1.5"/>
+        <text x="295" y="222" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">PostgreSQL</text>
+        <text x="295" y="240" text-anchor="middle" font-size="10" fill="#5a6e8a">Internal only · 5432</text>
+
+        <!-- Arrows -->
+        <line x1="180" y1="100" x2="218" y2="100" stroke="#2e7dd1" stroke-width="1.5" marker-end="url(#dep-arr)"/>
+        <text x="199" y="93" font-size="9" fill="#2e7dd1" text-anchor="middle">OIDC</text>
+
+        <line x1="370" y1="100" x2="408" y2="100" stroke="#2e7dd1" stroke-width="1.5" marker-end="url(#dep-arr)"/>
+        <text x="389" y="93" font-size="9" fill="#2e7dd1" text-anchor="middle">JWT</text>
+
+        <line x1="485" y1="150" x2="340" y2="188" stroke="#6b21a8" stroke-width="1.5" marker-end="url(#dep-arr)"/>
+        <text x="430" y="182" font-size="9" fill="#6b21a8">JDBC</text>
+
+        <line x1="295" y1="150" x2="295" y2="188" stroke="#6b21a8" stroke-width="1.5" marker-end="url(#dep-arr)"/>
+        <text x="310" y="175" font-size="9" fill="#6b21a8">admin</text>
+
+        <!-- External user -->
+        <text x="30" y="190" font-size="22">👤</text>
+        <text x="54" y="192" font-size="10" fill="#5a6e8a">Browser</text>
+        <line x1="48" y1="200" x2="60" y2="200" stroke="#2e7dd1" stroke-width="1.2" marker-end="url(#dep-arr)"/>
+        <line x1="62" y1="200" x2="27" y2="120" stroke="#2e7dd1" stroke-width="1.2"/>
+      </svg>
+    </div>
+
+    <h3>Environment Variables</h3>
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Used By</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>DB_URL</code></td><td>Spring Boot</td><td>JDBC connection string</td></tr>
+        <tr><td><code>DB_USERNAME</code></td><td>Spring Boot</td><td>Database user</td></tr>
+        <tr><td><code>DB_PASSWORD</code></td><td>Spring Boot</td><td>Database password (secret)</td></tr>
+        <tr><td><code>KEYCLOAK_REALM_URL</code></td><td>nginx</td><td>Keycloak realm URL for fetching RS256 public key (e.g. <code>http://keycloak:8080/auth/realms/bankapp</code>)</td></tr>
+        <tr><td><code>KEYCLOAK_ADMIN_URL</code></td><td>Spring Boot</td><td>Keycloak base URL for Admin API</td></tr>
+        <tr><td><code>KEYCLOAK_ADMIN_USERNAME</code></td><td>Spring Boot</td><td>Master realm admin username</td></tr>
+        <tr><td><code>KC_ADMIN_PASSWORD</code></td><td>Spring Boot / Keycloak</td><td>Master realm admin password (secret)</td></tr>
+        <tr><td><code>KEYCLOAK_CLIENT_SECRET</code></td><td>Next.js</td><td>OIDC client secret (secret)</td></tr>
+        <tr><td><code>NEXTAUTH_SECRET</code></td><td>Next.js</td><td>Session encryption key (secret)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box">
+      All secrets are injected via a <code>.env</code> file at runtime and referenced as <code>${VAR}</code> in docker-compose.yml. Secret values are never committed to version control.
+    </div>
+
+    <h3>Quick Start</h3>
+    <pre><code><span class="cmt"># Start all services</span>
+docker compose up --build -d
+
+<span class="cmt"># Rebuild a single service after code changes</span>
+docker compose up --build -d app
+
+<span class="cmt"># View logs</span>
+docker compose logs -f app</code></pre>
+  </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ PAGE — COMM FLOWS ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 11</div>
+    <h2>Complete Communication Flow</h2>
+    <p>Every communication path in the system — from browser to database — annotated with protocol, direction, and whether it passes through nginx or bypasses it internally.</p>
+
+    <!-- SWIM-LANE DIAGRAM -->
+    <div class="diagram-wrap">
+      <svg width="860" height="560" viewBox="0 0 860 560" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+        <defs>
+          <marker id="a1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#2e7dd1"/></marker>
+          <marker id="a2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#c47a1a"/></marker>
+          <marker id="a3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a7a4a"/></marker>
+          <marker id="a4" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#6b21a8"/></marker>
+          <marker id="a5" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#94a3b8"/></marker>
+        </defs>
+
+        <!-- Column headers -->
+        <rect x="0"   y="0" width="120" height="44" rx="0" fill="#0f2744"/>
+        <rect x="125" y="0" width="120" height="44" rx="0" fill="#1d5fa8"/>
+        <rect x="250" y="0" width="120" height="44" rx="0" fill="#0f2744"/>
+        <rect x="375" y="0" width="120" height="44" rx="0" fill="#7b3f00"/>
+        <rect x="500" y="0" width="120" height="44" rx="0" fill="#1a5c2a"/>
+        <rect x="625" y="0" width="120" height="44" rx="0" fill="#2d1b69"/>
+        <text x="60"  y="27" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🌐 Browser</text>
+        <text x="185" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">⚙️ nginx</text>
+        <text x="185" y="36" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">OpenResty · Lua</text>
+        <text x="310" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">⚛️ Next.js</text>
+        <text x="310" y="36" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">:3000 internal</text>
+        <text x="435" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🔑 Keycloak</text>
+        <text x="435" y="36" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">:8080 internal</text>
+        <text x="560" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🍃 Spring Boot</text>
+        <text x="560" y="36" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">:8080 internal</text>
+        <text x="685" y="21" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">🐘 PostgreSQL</text>
+        <text x="685" y="36" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">:5432 internal</text>
+
+        <!-- Row dividers and labels -->
+        <!-- Flow 1: Page load -->
+        <rect x="0" y="48" width="750" height="60" rx="0" fill="#f0f6ff"/>
+        <text x="10" y="63" font-size="9" font-weight="700" fill="#1d5fa8">① PAGE LOAD</text>
+        <!-- browser → nginx -->
+        <line x1="60"  y1="85" x2="122" y2="85" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="91"   y="80" text-anchor="middle" font-size="8" fill="#2e7dd1" font-weight="600">HTTPS GET /</text>
+        <!-- nginx → nextjs -->
+        <line x1="247" y1="85" x2="248" y2="85" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="185" y1="78" x2="248" y2="78" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="216"  y="73" text-anchor="middle" font-size="8" fill="#2e7dd1">proxy /*</text>
+        <!-- nextjs → nginx → browser -->
+        <line x1="250" y1="93" x2="188" y2="93" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <line x1="123" y1="93" x2="62"  y2="93" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <text x="155"  y="104" text-anchor="middle" font-size="8" fill="#94a3b8">HTML response</text>
+
+        <!-- Flow 2: Login -->
+        <rect x="0" y="112" width="750" height="75" rx="0" fill="#fff9f0"/>
+        <text x="10" y="127" font-size="9" font-weight="700" fill="#c47a1a">② LOGIN (OIDC Auth Code Flow)</text>
+        <!-- browser → nginx (redirect to /auth/) -->
+        <line x1="60"  y1="145" x2="122" y2="145" stroke="#c47a1a" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="91"   y="140" text-anchor="middle" font-size="8" fill="#c47a1a" font-weight="600">GET /auth/realms/.../auth</text>
+        <!-- nginx → keycloak -->
+        <line x1="247" y1="145" x2="373" y2="145" stroke="#c47a1a" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="310"  y="140" text-anchor="middle" font-size="8" fill="#c47a1a">proxy /auth/ → /</text>
+        <!-- keycloak → nginx → browser (login form) -->
+        <line x1="373" y1="160" x2="247" y2="160" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <line x1="123" y1="160" x2="62"  y2="160" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <text x="200"  y="175" text-anchor="middle" font-size="8" fill="#94a3b8">login form HTML</text>
+
+        <!-- Flow 3: Callback + token exchange -->
+        <rect x="0" y="191" width="750" height="80" rx="0" fill="#f0fff6"/>
+        <text x="10" y="206" font-size="9" font-weight="700" fill="#1a7a4a">③ CALLBACK + TOKEN EXCHANGE</text>
+        <!-- keycloak → nginx → browser (302 redirect) -->
+        <line x1="373" y1="220" x2="247" y2="220" stroke="#c47a1a" stroke-width="2" marker-end="url(#a2)"/>
+        <line x1="123" y1="220" x2="62"  y2="220" stroke="#c47a1a" stroke-width="2" marker-end="url(#a2)"/>
+        <text x="200"  y="215" text-anchor="middle" font-size="8" fill="#c47a1a">302 → /api/auth/callback?code=…</text>
+        <!-- browser → nginx → nextjs (callback) -->
+        <line x1="60"  y1="250" x2="122" y2="250" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="247" y1="250" x2="248" y2="250" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="185" y1="244" x2="248" y2="244" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="91"   y="245" text-anchor="middle" font-size="8" fill="#2e7dd1">GET /api/auth/callback</text>
+        <!-- nextjs server → nginx → keycloak (token exchange via localhost) -->
+        <line x1="310" y1="258" x2="248" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
+        <line x1="248" y1="258" x2="373" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
+        <text x="330"  y="268" text-anchor="middle" font-size="8" fill="#1a7a4a">POST token (server→server, via nginx on localhost)</text>
+
+        <!-- Flow 4: API Call -->
+        <rect x="0" y="275" width="750" height="95" rx="0" fill="#f0f6ff"/>
+        <text x="10" y="290" font-size="9" font-weight="700" fill="#1d5fa8">④ API CALL (JWT VERIFIED IN nginx)</text>
+        <!-- browser → nginx (with Bearer) -->
+        <line x1="60"  y1="315" x2="122" y2="315" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="91"   y="309" text-anchor="middle" font-size="8" fill="#2e7dd1" font-weight="600">HTTPS + Authorization: Bearer …</text>
+        <!-- nginx lua → keycloak (get public key) -->
+        <line x1="185" y1="328" x2="373" y2="328" stroke="#c47a1a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a2)"/>
+        <text x="279"  y="323" text-anchor="middle" font-size="8" fill="#c47a1a">GET /realms/bankapp (pub key, cached 1h)</text>
+        <!-- nginx → spring (with X-User-Roles) -->
+        <line x1="247" y1="343" x2="497" y2="343" stroke="#1a7a4a" stroke-width="2" marker-end="url(#a3)"/>
+        <text x="372"  y="338" text-anchor="middle" font-size="8" fill="#1a7a4a" font-weight="600">proxy + X-User-Roles / X-User-Email</text>
+        <!-- spring → nginx → browser (response) -->
+        <line x1="498" y1="358" x2="248" y2="358" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <line x1="123" y1="358" x2="62"  y2="358" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <text x="280"  y="370" text-anchor="middle" font-size="8" fill="#94a3b8">ApiResponse&lt;T&gt; JSON</text>
+
+        <!-- Flow 5: Customer registration (admin) -->
+        <rect x="0" y="374" width="750" height="75" rx="0" fill="#fff9f0"/>
+        <text x="10" y="389" font-size="9" font-weight="700" fill="#c47a1a">⑤ CUSTOMER REGISTRATION (Bank Manager / Admin)</text>
+        <!-- browser → nginx → spring (POST /api/v2/customers) -->
+        <line x1="60"  y1="415" x2="122" y2="415" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <line x1="247" y1="415" x2="497" y2="415" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
+        <text x="300"  y="409" text-anchor="middle" font-size="8" fill="#2e7dd1">POST /api/v2/customers (JWT verified by nginx)</text>
+        <!-- spring → keycloak (admin: create user) -->
+        <line x1="500" y1="430" x2="375" y2="430" stroke="#c47a1a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a2)"/>
+        <text x="437"  y="426" text-anchor="middle" font-size="8" fill="#c47a1a">Admin API: create user</text>
+        <!-- spring → postgres -->
+        <line x1="622" y1="430" x2="623" y2="430" stroke="#6b21a8" stroke-width="1.8" marker-end="url(#a4)"/>
+        <line x1="560" y1="430" x2="623" y2="430" stroke="#6b21a8" stroke-width="1.8" marker-end="url(#a4)"/>
+        <text x="592"  y="442" text-anchor="middle" font-size="8" fill="#6b21a8">INSERT customer + account</text>
+
+        <!-- Flow 6: DB query -->
+        <rect x="0" y="453" width="750" height="55" rx="0" fill="#f5f0ff"/>
+        <text x="10" y="468" font-size="9" font-weight="700" fill="#6b21a8">⑥ DATABASE (all API calls)</text>
+        <line x1="622" y1="490" x2="623" y2="490" stroke="#6b21a8" stroke-width="2" marker-end="url(#a4)"/>
+        <line x1="560" y1="484" x2="623" y2="484" stroke="#6b21a8" stroke-width="2" marker-end="url(#a4)"/>
+        <text x="592"  y="480" text-anchor="middle" font-size="8" fill="#6b21a8" font-weight="600">JDBC queries</text>
+        <line x1="622" y1="496" x2="561" y2="496" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2" marker-end="url(#a5)"/>
+        <text x="592"  y="506" text-anchor="middle" font-size="8" fill="#94a3b8">ResultSet</text>
+
+        <!-- Legend -->
+        <rect x="0" y="512" width="750" height="44" rx="0" fill="#f4f7fb" stroke="#dce6f5" stroke-width="1"/>
+        <line x1="16" y1="530" x2="36" y2="530" stroke="#2e7dd1" stroke-width="2"/>
+        <text x="40" y="534" font-size="9" fill="#5a6e8a">Browser↔nginx (public HTTPS)</text>
+        <line x1="160" y1="530" x2="180" y2="530" stroke="#c47a1a" stroke-width="2"/>
+        <text x="184" y="534" font-size="9" fill="#5a6e8a">OIDC / admin (orange)</text>
+        <line x1="295" y1="530" x2="315" y2="530" stroke="#1a7a4a" stroke-width="2"/>
+        <text x="319" y="534" font-size="9" fill="#5a6e8a">Verified API proxy (green)</text>
+        <line x1="440" y1="530" x2="460" y2="530" stroke="#6b21a8" stroke-width="2"/>
+        <text x="464" y="534" font-size="9" fill="#5a6e8a">JDBC (purple)</text>
+        <line x1="536" y1="530" x2="556" y2="530" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2"/>
+        <text x="560" y="534" font-size="9" fill="#5a6e8a">Responses (grey dashed)</text>
+        <line x1="16" y1="548" x2="36" y2="548" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3"/>
+        <text x="40" y="552" font-size="9" fill="#5a6e8a">Server-to-server (via nginx on localhost)</text>
+      </svg>
+    </div>
+
+    <div class="info-box" style="margin-top:16px"><strong>Token exchange goes through nginx</strong> — When Next.js (server side) exchanges the auth code for tokens (Flow ③) or refreshes a token, it calls the <em>same public issuer the browser uses</em> — <code>https://localhost/auth/realms/bankapp</code>. The Next.js container's <code>/etc/hosts</code> is patched at startup so <code>localhost</code> resolves to the gateway container's IP, meaning the backchannel call is proxied through nginx on :443 like every other request. This keeps a single issuer/hostname everywhere (so the JWT <code>iss</code> claim matches) and avoids OIDC discovery mismatches. The browser never sees Keycloak's internal address.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ PAGE — TESTING ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 13</div>
+    <h2>Testing with Postman</h2>
+    <p>All API testing goes through the full nginx gateway stack — the same path as the frontend. JWT validation happens in nginx Lua, not in Spring Boot, so every request needs a valid Keycloak token.</p>
+
+    <div class="info-box">
+      <strong>Import</strong>: <code>Banfico-Training program/postman/BankApp-API.postman_collection.json</code><br>
+      Fill in collection variables: <code>clientSecret</code>, <code>riyazPassword</code>, <code>priyaPassword</code>, <code>arjunPassword</code>, <code>snehaPassword</code>, <code>rahulPassword</code>, <code>managerPassword</code>.<br>
+      Disable SSL certificate verification in <strong>Postman Settings → General</strong> (self-signed cert on localhost).
+    </div>
+
+    <h3>Request Flow</h3>
+
+    <div class="diagram-wrap">
+      <svg width="720" height="150" viewBox="0 0 720 150" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="12">
+        <defs>
+          <marker id="t1" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#1d5fa8"/></marker>
+          <marker id="t2" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#1a7a4a"/></marker>
+          <marker id="t3" markerWidth="7" markerHeight="6" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#6b21a8"/></marker>
+        </defs>
+
+        <!-- Postman -->
+        <rect x="10" y="50" width="120" height="55" rx="10" fill="#e8f0fe" stroke="#1d5fa8" stroke-width="1.5"/>
+        <text x="70" y="74" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">Postman</text>
+        <text x="70" y="90" text-anchor="middle" font-size="9" fill="#5a6e8a">Authorization:</text>
+        <text x="70" y="102" text-anchor="middle" font-size="9" fill="#1d5fa8">Bearer {{token}}</text>
+
+        <!-- nginx -->
+        <rect x="180" y="50" width="155" height="55" rx="10" fill="#0f2744" stroke="#1d5fa8" stroke-width="1.5"/>
+        <text x="257" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">nginx / OpenResty</text>
+        <text x="257" y="87" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.65)">verify RS256 JWT</text>
+        <text x="257" y="100" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.65)">inject X-User-Roles/Email/Sub</text>
+
+        <!-- Spring Boot -->
+        <rect x="385" y="50" width="150" height="55" rx="10" fill="#e8fff2" stroke="#1a7a4a" stroke-width="1.5"/>
+        <text x="460" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">Spring Boot</text>
+        <text x="460" y="87" text-anchor="middle" font-size="9" fill="#5a6e8a">SecurityConfig rules</text>
+        <text x="460" y="100" text-anchor="middle" font-size="9" fill="#5a6e8a">controller + service</text>
+
+        <!-- PostgreSQL -->
+        <rect x="585" y="50" width="125" height="55" rx="10" fill="#f3e8ff" stroke="#6b21a8" stroke-width="1.5"/>
+        <text x="647" y="74" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">PostgreSQL</text>
+        <text x="647" y="90" text-anchor="middle" font-size="9" fill="#6b21a8">:5432 JDBC</text>
+
+        <!-- Arrows -->
+        <line x1="130" y1="77" x2="178" y2="77" stroke="#1d5fa8" stroke-width="2" marker-end="url(#t1)"/>
+        <text x="154" y="70" text-anchor="middle" font-size="9" fill="#1d5fa8" font-weight="600">HTTPS :443</text>
+
+        <line x1="335" y1="77" x2="383" y2="77" stroke="#1a7a4a" stroke-width="2" marker-end="url(#t2)"/>
+        <text x="359" y="70" text-anchor="middle" font-size="9" fill="#1a7a4a" font-weight="600">HTTP :8080</text>
+
+        <line x1="535" y1="77" x2="583" y2="77" stroke="#6b21a8" stroke-width="2" marker-end="url(#t3)"/>
+      </svg>
+    </div>
+
+    <h3>Step-by-Step</h3>
+    <table>
+      <thead><tr><th>Step</th><th>Action</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Open <strong>Auth</strong> folder, pick a user</td><td>e.g. <em>Get Token (priya — user)</em> or <em>Get Token (riyaz — admin)</em></td></tr>
+        <tr><td>2</td><td>Send the token request</td><td>Test script captures <code>access_token</code> → <code>{{token}}</code> automatically</td></tr>
+        <tr><td>3</td><td>Send any API request</td><td>Every request already has <code>Authorization: Bearer {{token}}</code> set</td></tr>
+        <tr><td>4</td><td>Token expired?</td><td>Re-run step 1 — the variable is overwritten with a fresh token</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Folders &amp; Coverage</h3>
+    <table>
+      <thead><tr><th>Folder</th><th>Who to log in as</th><th>What it tests</th></tr></thead>
+      <tbody>
+        <tr><td><strong>User Workflow (Demo)</strong></td><td>priya (USER)</td><td>End-to-end user journey: login → accounts → transactions → lookup → beneficiary → transfer → verify → cleanup</td></tr>
+        <tr><td><strong>BankManager Workflow (Demo)</strong></td><td>manager (BANKMANAGER)</td><td>Onboarding flow: login → register customer + account atomically</td></tr>
+        <tr><td><strong>Auth</strong></td><td>Any user</td><td>Token fetch for riyaz (admin), manager, priya, arjun, sneha, rahul</td></tr>
+        <tr><td><strong>System</strong></td><td>None needed</td><td>Health check, app info (public endpoints)</td></tr>
+        <tr><td><strong>Customers</strong></td><td>riyaz (ADMIN) or manager (BANKMANAGER)</td><td>Register, get all, get by ID, update, delete, create manager, get all managers</td></tr>
+        <tr><td><strong>Accounts</strong></td><td>riyaz (ADMIN) to manage; priya (USER) to view own</td><td>Lookup by number, list all, get by ID, create, update, delete</td></tr>
+        <tr><td><strong>Transactions</strong></td><td>Any authenticated user</td><td>Paginated transaction history — staff sees any account, user sees own</td></tr>
+        <tr><td><strong>Transfer (v2)</strong></td><td>priya (USER)</td><td>Preview, transfer, idempotency test (re-send same paymentId)</td></tr>
+        <tr><td><strong>Payments</strong></td><td>Any authenticated user</td><td>List all (staff), list own (user), get by ID</td></tr>
+        <tr><td><strong>Beneficiaries</strong></td><td>priya (USER) or riyaz (ADMIN)</td><td>List own, list by customerId (staff), add, update nickname, delete</td></tr>
+        <tr><td><strong>Profile</strong></td><td>priya (USER)</td><td>Get own profile, update firstName/lastName/phoneNumber</td></tr>
+      </tbody>
+    </table>
+
+    <h3>RBAC Quick Reference</h3>
+    <p>Log in as different users to exercise different access rules. Same endpoint, different token — different result.</p>
+    <table>
+      <thead><tr><th>Login as</th><th>Role(s)</th><th>What they see on GET /api/v1/accounts</th></tr></thead>
+      <tbody>
+        <tr><td>riyaz</td><td>ADMIN, USER</td><td>All accounts bank-wide</td></tr>
+        <tr><td>manager</td><td>BANKMANAGER</td><td>All accounts bank-wide</td></tr>
+        <tr><td>priya / arjun / sneha / rahul</td><td>USER</td><td>Only their own accounts</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ PAGE — PROD ARCH ═══ -->
+<div class="page page-break">
+  <div class="section">
+    <div class="section-label">Section 12</div>
+    <h2>Production Architecture (Two VPC Instances)</h2>
+    <p>In production the system is split across two cloud instances in the same Virtual Private Cloud (VPC). Only Instance 2 has a public IP. Instance 1 (Spring Boot + PostgreSQL) is completely private — accessible only from within the VPC via security group rules.</p>
+
+    <div class="diagram-wrap">
+      <svg width="840" height="440" viewBox="0 0 840 440" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
+        <defs>
+          <marker id="p1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#2e7dd1"/></marker>
+          <marker id="p2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#c47a1a"/></marker>
+          <marker id="p3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#1a7a4a"/></marker>
+          <marker id="p4" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#6b21a8"/></marker>
+        </defs>
+
+        <!-- Internet cloud -->
+        <ellipse cx="80" cy="180" rx="65" ry="40" fill="#e8f4ff" stroke="#1d5fa8" stroke-width="1.5"/>
+        <text x="80" y="174" text-anchor="middle" font-size="12" fill="#0f2744" font-weight="700">🌐</text>
+        <text x="80" y="188" text-anchor="middle" font-size="10" fill="#0f2744">Internet</text>
+
+        <!-- VPC boundary -->
+        <rect x="175" y="20" width="645" height="400" rx="18" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="10,5"/>
+        <text x="190" y="42" font-size="11" fill="#5a6e8a" font-weight="600">🏛  VPC — bankapp-vpc</text>
+
+        <!-- Instance 2 box (public) -->
+        <rect x="195" y="55" width="290" height="340" rx="14" fill="#f0f6ff" stroke="#1d5fa8" stroke-width="2"/>
+        <text x="340" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#0f2744">Instance 2</text>
+        <text x="340" y="94" text-anchor="middle" font-size="10" fill="#1d5fa8">Public IP · ports 80 + 443 open</text>
+
+        <!-- nginx in Instance 2 -->
+        <rect x="215" y="105" width="250" height="80" rx="10" fill="#0f2744" stroke="#1d5fa8" stroke-width="1.5"/>
+        <text x="340" y="133" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">⚙️  nginx / OpenResty</text>
+        <text x="340" y="150" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">TLS termination · JWT validation (Lua)</text>
+        <text x="340" y="166" text-anchor="middle" font-size="9"  fill="rgba(255,255,255,0.7)">ports 80 → 443 redirect · /auth/ /api/ /*</text>
+
+        <!-- Next.js in Instance 2 -->
+        <rect x="215" y="200" width="115" height="75" rx="10" fill="#e8f4ff" stroke="#1d5fa8" stroke-width="1.5"/>
+        <text x="272" y="226" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">⚛️ Next.js</text>
+        <text x="272" y="243" text-anchor="middle" font-size="9"  fill="#5a6e8a">:3000 internal</text>
+        <text x="272" y="258" text-anchor="middle" font-size="9"  fill="#5a6e8a">NEXTAUTH_URL</text>
+
+        <!-- Keycloak in Instance 2 -->
+        <rect x="350" y="200" width="115" height="75" rx="10" fill="#fff4e0" stroke="#c47a1a" stroke-width="1.5"/>
+        <text x="407" y="222" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">🔑 Keycloak</text>
+        <text x="407" y="238" text-anchor="middle" font-size="9"  fill="#5a6e8a">:8080 internal</text>
+        <text x="407" y="253" text-anchor="middle" font-size="9"  fill="#c47a1a">:8080 VPC</text>
+        <text x="407" y="268" text-anchor="middle" font-size="9"  fill="#5a6e8a">admin access</text>
+
+        <!-- Instance 2 volume note -->
+        <rect x="215" y="293" width="250" height="40" rx="6" fill="#fffbeb" stroke="#c47a1a" stroke-width="1"/>
+        <text x="340" y="309" text-anchor="middle" font-size="9" fill="#c47a1a" font-weight="600">📦 keycloak-data (Docker volume)</text>
+        <text x="340" y="323" text-anchor="middle" font-size="9" fill="#5a6e8a">realm config · users · sessions persisted</text>
+
+        <!-- Security group badge Instance 2 -->
+        <rect x="215" y="343" width="250" height="36" rx="6" fill="#e8f4ff" stroke="#1d5fa8" stroke-width="1"/>
+        <text x="340" y="358" text-anchor="middle" font-size="9" font-weight="600" fill="#1d5fa8">🛡 Security Group — Instance 2</text>
+        <text x="340" y="372" text-anchor="middle" font-size="8" fill="#5a6e8a">IN: 80/443 from 0.0.0.0 · 8080 from Instance1-SG only</text>
+
+        <!-- Instance 1 box (private) -->
+        <rect x="520" y="55" width="280" height="340" rx="14" fill="#f0fff6" stroke="#1a7a4a" stroke-width="2"/>
+        <text x="660" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#0f2744">Instance 1</text>
+        <text x="660" y="94" text-anchor="middle" font-size="10" fill="#1a7a4a">Private IP only — no public access</text>
+
+        <!-- Spring Boot in Instance 1 -->
+        <rect x="540" y="110" width="240" height="85" rx="10" fill="#e8fff2" stroke="#1a7a4a" stroke-width="1.5"/>
+        <text x="660" y="137" text-anchor="middle" font-size="12" font-weight="700" fill="#0f2744">🍃 Spring Boot</text>
+        <text x="660" y="154" text-anchor="middle" font-size="9"  fill="#5a6e8a">:8080 VPC (Instance2→SpringBoot allowed)</text>
+        <text x="660" y="169" text-anchor="middle" font-size="9"  fill="#5a6e8a">GatewayAuthenticationFilter (X-User-Roles)</text>
+        <text x="660" y="184" text-anchor="middle" font-size="9"  fill="#5a6e8a">Keycloak Admin URL → Instance2:8080</text>
+
+        <!-- PostgreSQL in Instance 1 -->
+        <rect x="540" y="215" width="240" height="70" rx="10" fill="#f3e8ff" stroke="#6b21a8" stroke-width="1.5"/>
+        <text x="660" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2744">🐘 PostgreSQL</text>
+        <text x="660" y="258" text-anchor="middle" font-size="9"  fill="#5a6e8a">:5432 Docker internal only</text>
+        <text x="660" y="272" text-anchor="middle" font-size="9"  fill="#6b21a8">postgres-data (Docker volume)</text>
+
+        <!-- Security group badge Instance 1 -->
+        <rect x="540" y="300" width="240" height="50" rx="6" fill="#e8fff2" stroke="#1a7a4a" stroke-width="1"/>
+        <text x="660" y="318" text-anchor="middle" font-size="9" font-weight="600" fill="#1a7a4a">🛡 Security Group — Instance 1</text>
+        <text x="660" y="332" text-anchor="middle" font-size="8" fill="#5a6e8a">IN: 8080 from Instance2-SG only</text>
+        <text x="660" y="345" text-anchor="middle" font-size="8" fill="#5a6e8a">OUT: all (to reach Instance2 Keycloak)</text>
+
+        <!-- env var callout -->
+        <rect x="540" y="360" width="240" height="30" rx="6" fill="#fffbeb" stroke="#c47a1a" stroke-width="1"/>
+        <text x="660" y="380" text-anchor="middle" font-size="8.5" fill="#c47a1a">INSTANCE2_PRIVATE_IP → KEYCLOAK_ADMIN_URL</text>
+
+        <!-- Arrows -->
+        <!-- Internet → nginx -->
+        <line x1="145" y1="170" x2="213" y2="145" stroke="#2e7dd1" stroke-width="2" marker-end="url(#p1)"/>
+        <text x="165" y="148" text-anchor="middle" font-size="9" fill="#2e7dd1" font-weight="600">HTTPS</text>
+        <text x="165" y="160" text-anchor="middle" font-size="9" fill="#2e7dd1">80/443</text>
+
+        <!-- nginx → nextjs -->
+        <line x1="285" y1="185" x2="272" y2="198" stroke="#2e7dd1" stroke-width="1.8" marker-end="url(#p1)"/>
+        <text x="268" y="196" text-anchor="start" font-size="8" fill="#2e7dd1">/*</text>
+
+        <!-- nginx → keycloak -->
+        <line x1="395" y1="185" x2="407" y2="198" stroke="#c47a1a" stroke-width="1.8" marker-end="url(#p2)"/>
+        <text x="396" y="196" text-anchor="start" font-size="8" fill="#c47a1a">/auth/*</text>
+
+        <!-- nextjs → keycloak (token exchange direct) -->
+        <line x1="330" y1="237" x2="348" y2="237" stroke="#1a7a4a" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#p3)"/>
+        <text x="339" y="230" text-anchor="middle" font-size="8" fill="#1a7a4a">token</text>
+
+        <!-- nginx → Spring Boot (VPC) -->
+        <line x1="466" y1="148" x2="538" y2="148" stroke="#1a7a4a" stroke-width="2.5" marker-end="url(#p3)"/>
+        <text x="502" y="142" text-anchor="middle" font-size="9" fill="#1a7a4a" font-weight="700">/api/* → VPC :8080</text>
+        <text x="502" y="155" text-anchor="middle" font-size="8" fill="#1a7a4a">X-User-Roles header</text>
+
+        <!-- Spring Boot → Keycloak Admin (VPC) -->
+        <path d="M 540 175 Q 505 200 466 237" fill="none" stroke="#c47a1a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#p2)"/>
+        <text x="496" y="215" text-anchor="middle" font-size="8" fill="#c47a1a">Admin API</text>
+        <text x="496" y="226" text-anchor="middle" font-size="8" fill="#c47a1a">VPC :8080</text>
+
+        <!-- Spring Boot → Postgres -->
+        <line x1="660" y1="196" x2="660" y2="213" stroke="#6b21a8" stroke-width="2" marker-end="url(#p4)"/>
+        <text x="674" y="208" font-size="9" fill="#6b21a8">JDBC</text>
+      </svg>
+    </div>
+
+    <h3>Production Env Variables (by instance)</h3>
+    <table>
+      <thead><tr><th>Instance</th><th>Variable</th><th>Example Value</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Instance 1</td><td><code>INSTANCE2_PRIVATE_IP</code></td><td><code>10.0.2.10</code></td><td>Keycloak Admin URL host</td></tr>
+        <tr><td>Instance 1</td><td><code>DB_URL / DB_USERNAME / DB_PASSWORD</code></td><td>—</td><td>PostgreSQL connection</td></tr>
+        <tr><td>Instance 2</td><td><code>INSTANCE1_PRIVATE_IP</code></td><td><code>10.0.1.10</code></td><td>nginx upstream for Spring Boot (<code>SPRING_BACKEND_HOST</code>)</td></tr>
+        <tr><td>Instance 2</td><td><code>DOMAIN</code></td><td><code>bankapp.example.com</code></td><td>Keycloak <code>KC_HOSTNAME</code>, Next.js URLs</td></tr>
+        <tr><td>Instance 2</td><td><code>KEYCLOAK_REALM_URL</code></td><td><code>http://keycloak:8080/auth/realms/bankapp</code></td><td>nginx Lua public key fetch (Docker-internal)</td></tr>
+        <tr><td>Instance 2</td><td><code>NEXTAUTH_SECRET / KEYCLOAK_CLIENT_SECRET</code></td><td>—</td><td>Next.js session &amp; OIDC client</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box" style="margin-top:16px">
+      <strong>VPC Security Groups as firewall</strong> — Instance 1's security group only allows inbound TCP 8080 from Instance 2's security group ID (not a raw CIDR). Instance 2's security group allows inbound TCP 8080 from Instance 1's security group ID only (for Keycloak Admin API). This means even if an attacker knows the private IP, they cannot reach Spring Boot without being Instance 2.
+    </div>
+
+    <h3>Quick Start (Production)</h3>
+    <pre><code><span class="cmt"># Instance 2 — generate TLS cert (or copy from ACM/Let's Encrypt)</span>
+cd api-gateway/certs &amp;&amp; bash generate-certs.sh &amp;&amp; cd ../..
+
+<span class="cmt"># Instance 1 — start Spring Boot + PostgreSQL</span>
+cp .env.example .env.instance1  <span class="cmt"># fill INSTANCE2_PRIVATE_IP</span>
+docker compose -f docker-compose.instance1.yml --env-file .env.instance1 up -d
+
+<span class="cmt"># Instance 2 — start nginx + Next.js + Keycloak (start after Keycloak admin API is ready)</span>
+cp .env.example .env.instance2  <span class="cmt"># fill INSTANCE1_PRIVATE_IP, DOMAIN</span>
+docker compose -f docker-compose.instance2.yml --env-file .env.instance2 up -d</code></pre>
+  </div>
+
+  <div class="doc-footer">
+    <div>BankApp · Product &amp; Technical Specification · v1.0</div>
+    <div>Riyaz · Banfico Training Program · October 2026</div>
+    <div>Confidential</div>
+  </div>
+</div>
+
 </body>
 </html>
