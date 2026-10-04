@@ -6,16 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public class AccountRequest {
-    private String accountNo;
     private String accountType;
     private Integer balance;
     private UUID customerId;
 
     public AccountRequest() {}
-
-    @NotBlank(message = "Account No is Missing")
-    public String getAccountNo() { return accountNo; }
-    public void setAccountNo(String accountNo) { this.accountNo = accountNo; }
 
     @NotBlank(message = "Set Account Type")
     public String getAccountType() { return accountType; }
