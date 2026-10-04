@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.transaction.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.transaction.dto.TransactionResponse;
 import com.riyaz.banficotrainingprogram.transaction.service.TransactionService;
 import org.springframework.data.domain.Page;
@@ -26,13 +27,13 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TransactionResponse>> getTransactions(@RequestParam UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "transactionTime", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ResponseEntity<ApiResponse<Page<TransactionResponse>>> getTransactions(@RequestParam UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "transactionTime", direction = Sort.Direction.DESC) Pageable pageable) {
         Map<String, Object> realmAccess = jwt.getClaim("realm_access");
         List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
         boolean isStaff = roles.contains("admin") || roles.contains("BankManager");
         Page<TransactionResponse> result = transactionService.getTransactions(accountId, jwt.getClaimAsString("email"), isStaff, pageable);
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
-        return ResponseEntity.ok().headers(headers).body(result);
+        return ResponseEntity.ok().headers(headers).body(ApiResponse.ok("Transactions retrieved", result));
     }
 }
