@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.CreateManagerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CreateManagerResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.ManagerResponse;
@@ -21,12 +22,12 @@ public class ManagerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ManagerResponse>> getManagers() {
-        return ResponseEntity.ok(keycloakAdminService.getManagers());
+    public ResponseEntity<ApiResponse<List<ManagerResponse>>> getManagers() {
+        return ResponseEntity.ok(ApiResponse.ok("Managers retrieved", keycloakAdminService.getManagers()));
     }
 
     @PostMapping
-    public ResponseEntity<CreateManagerResponse> createManager(@Valid @RequestBody CreateManagerRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(keycloakAdminService.createManager(request.getUsername(), request.getEmail(), request.getFirstName(), request.getLastName(), request.getTemporaryPassword()));
+    public ResponseEntity<ApiResponse<CreateManagerResponse>> createManager(@Valid @RequestBody CreateManagerRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Manager created", keycloakAdminService.createManager(request.getUsername(), request.getEmail(), request.getFirstName(), request.getLastName(), request.getTemporaryPassword())));
     }
 }
