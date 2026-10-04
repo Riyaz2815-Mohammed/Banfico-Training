@@ -8,8 +8,7 @@ import com.riyaz.banficotrainingprogram.transaction.service.TransferService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -24,12 +23,12 @@ public class TransferController {
     }
 
     @GetMapping("/preview")
-    public ResponseEntity<ApiResponse<TransferPreviewResponse>> preview(@AuthenticationPrincipal Jwt jwt, @RequestParam UUID fromAccountId, @RequestParam String recipientAccountNo, @RequestParam Integer amount) {
-        return ResponseEntity.ok(ApiResponse.ok("Transfer preview", transferService.preview(jwt.getClaimAsString("email"), fromAccountId, recipientAccountNo, amount)));
+    public ResponseEntity<ApiResponse<TransferPreviewResponse>> preview(Authentication auth, @RequestParam UUID fromAccountId, @RequestParam String recipientAccountNo, @RequestParam Integer amount) {
+        return ResponseEntity.ok(ApiResponse.ok("Transfer preview", transferService.preview((String) auth.getPrincipal(), fromAccountId, recipientAccountNo, amount)));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<PaymentResponse>> transfer(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody TransferRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Transfer successful", transferService.transfer(jwt.getClaimAsString("email"), request)));
+    public ResponseEntity<ApiResponse<PaymentResponse>> transfer(Authentication auth, @Valid @RequestBody TransferRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Transfer successful", transferService.transfer((String) auth.getPrincipal(), request)));
     }
 }

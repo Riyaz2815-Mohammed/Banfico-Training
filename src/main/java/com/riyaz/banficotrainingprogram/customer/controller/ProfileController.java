@@ -5,8 +5,7 @@ import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,12 +18,12 @@ public class ProfileController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<CustomerResponse>> getProfile(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ApiResponse.ok("Profile retrieved", customerService.getMyProfile(jwt.getClaimAsString("email"))));
+    public ResponseEntity<ApiResponse<CustomerResponse>> getProfile(Authentication auth) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile retrieved", customerService.getMyProfile((String) auth.getPrincipal())));
     }
 
     @PutMapping
-    public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(@RequestBody CustomerRequest request, @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(ApiResponse.ok("Profile updated", customerService.updateMyProfile(jwt.getClaimAsString("email"), request)));
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(@RequestBody CustomerRequest request, Authentication auth) {
+        return ResponseEntity.ok(ApiResponse.ok("Profile updated", customerService.updateMyProfile((String) auth.getPrincipal(), request)));
     }
 }

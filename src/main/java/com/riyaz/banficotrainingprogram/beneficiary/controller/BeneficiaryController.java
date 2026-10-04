@@ -7,12 +7,10 @@ import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -25,15 +23,15 @@ public class BeneficiaryController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<BeneficiaryResponse>>> getBeneficiaries(@RequestParam(required = false) UUID customerId, @AuthenticationPrincipal Jwt jwt) {
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        return ResponseEntity.ok(ApiResponse.ok("Beneficiaries retrieved", beneficiaryService.getBeneficiaries(jwt.getClaimAsString("email"), customerId, roles.contains("admin") || roles.contains("BankManager"))));
+    public ResponseEntity<ApiResponse<List<BeneficiaryResponse>>> getBeneficiaries(@RequestParam(required = false) UUID customerId, Authentication auth) {
+        String email = (String) auth.getPrincipal();
+        boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_BANKMANAGER"));
+        return ResponseEntity.ok(ApiResponse.ok("Beneficiaries retrieved", beneficiaryService.getBeneficiaries(email, customerId, isStaff)));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BeneficiaryResponse>> addBeneficiary(@Valid @RequestBody BeneficiaryRequest request, @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Beneficiary added", beneficiaryService.addMyBeneficiary(jwt.getClaimAsString("email"), request)));
+    public ResponseEntity<ApiResponse<BeneficiaryResponse>> addBeneficiary(@Valid @RequestBody BeneficiaryRequest request, Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Beneficiary added", beneficiaryService.addMyBeneficiary((String) auth.getPrincipal(), request)));
     }
 
     @PutMapping("/{beneficiaryId}")
@@ -42,8 +40,8 @@ public class BeneficiaryController {
     }
 
     @DeleteMapping("/{beneficiaryId}")
-    public ResponseEntity<ApiResponse<Object>> deleteBeneficiary(@PathVariable UUID beneficiaryId, @AuthenticationPrincipal Jwt jwt) {
-        beneficiaryService.removeMyBeneficiary(jwt.getClaimAsString("email"), beneficiaryId);
+    public ResponseEntity<ApiResponse<Object>> deleteBeneficiary(@PathVariable UUID beneficiaryId, Authentication auth) {
+        beneficiaryService.removeMyBeneficiary((String) auth.getPrincipal(), beneficiaryId);
         return ResponseEntity.ok(ApiResponse.ok("Beneficiary removed", null));
     }
 }

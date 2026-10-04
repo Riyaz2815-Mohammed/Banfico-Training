@@ -9,12 +9,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,10 +24,10 @@ public class PaymentController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getPayments(@RequestParam(required = false) UUID accountId, @AuthenticationPrincipal Jwt jwt, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-        List<String> roles = realmAccess != null ? (List<String>) realmAccess.get("roles") : List.of();
-        Page<PaymentResponse> result = paymentService.getPayments(jwt.getClaimAsString("email"), accountId, roles.contains("admin") || roles.contains("BankManager"), pageable);
+    public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getPayments(@RequestParam(required = false) UUID accountId, Authentication auth, @PageableDefault(size = 20, sort = "initiatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        String email = (String) auth.getPrincipal();
+        boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_BANKMANAGER"));
+        Page<PaymentResponse> result = paymentService.getPayments(email, accountId, isStaff, pageable);
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Total-Count", String.valueOf(result.getTotalElements()));
         return ResponseEntity.ok().headers(headers).body(ApiResponse.ok("Payments retrieved", result));
