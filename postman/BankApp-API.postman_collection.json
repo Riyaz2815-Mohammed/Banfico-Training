@@ -5,8 +5,8 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080" },
-    { "key": "keycloakUrl", "value": "http://localhost:8180" },
+    { "key": "baseUrl", "value": "https://localhost" },
+    { "key": "keycloakUrl", "value": "https://localhost/auth" },
     { "key": "realm", "value": "bankapp" },
     { "key": "token", "value": "" },
     { "key": "riyazCustomerId", "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567891" },
