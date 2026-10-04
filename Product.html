@@ -1326,41 +1326,99 @@
       </tbody>
     </table>
 
+    <h3>payments Table — Schema</h3>
+    <p>The <code>payments</code> table is the ledger of every transfer attempt. Its primary key <em>is</em> the client-supplied idempotency key, which is what makes the transfer safe to retry.</p>
+    <table>
+      <thead>
+        <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>payment_id</code></td><td>UUID</td><td><strong>PK</strong>, not null, non-updatable</td><td>Client-generated idempotency key</td></tr>
+        <tr><td><code>from_account_id</code></td><td>UUID</td><td>FK → accounts, not null</td><td>Source account (debited)</td></tr>
+        <tr><td><code>to_account_no</code></td><td>varchar</td><td>not null</td><td>Recipient account number</td></tr>
+        <tr><td><code>to_account_name</code></td><td>varchar</td><td>not null</td><td>Recipient holder name (snapshot)</td></tr>
+        <tr><td><code>amount</code></td><td>integer</td><td>not null</td><td>Transfer amount</td></tr>
+        <tr><td><code>note</code></td><td>varchar</td><td>nullable</td><td>Optional memo</td></tr>
+        <tr><td><code>status</code></td><td>varchar(20)</td><td>not null, enum string</td><td>PENDING · COMPLETED · FAILED</td></tr>
+        <tr><td><code>initiated_by</code></td><td>UUID</td><td>FK → customers, not null</td><td>Sender (the authenticated user)</td></tr>
+        <tr><td><code>initiated_at</code></td><td>datetime</td><td>not null, non-updatable</td><td>Set when the row is first saved</td></tr>
+        <tr><td><code>completed_at</code></td><td>datetime</td><td>nullable</td><td>Set when status → COMPLETED</td></tr>
+        <tr><td><code>failure_reason</code></td><td>varchar</td><td>nullable</td><td>Exception message when status → FAILED</td></tr>
+      </tbody>
+    </table>
+
     <h3>Idempotent Fund Transfer</h3>
-    <p>A fund transfer moves money between two accounts and must <strong>never double-charge</strong> if the client retries — a dropped response, a double-click, or a network timeout should not result in two debits. BankApp solves this with a <strong>client-generated idempotency key</strong>: the <code>paymentId</code> (a UUID) is both the primary key of the <code>Payment</code> row and the idempotency token.</p>
+    <p>A fund transfer moves money between two accounts and must <strong>never double-charge</strong> if the client retries — a dropped response, a double-click, or a network timeout should not result in two debits. BankApp solves this with a <strong>client-generated idempotency key</strong>: the <code>paymentId</code> (a UUID) is both the primary key of the <code>payments</code> row and the idempotency token. The entire transfer runs inside a single Spring <code>@Transactional</code> method in <code>TransferServiceImpl</code>, so the debit, the credit, the two transaction rows, and the payment record all commit together or not at all.</p>
 
     <div class="flow">
       <div class="flow-step">
         <div class="flow-num">1</div>
         <div class="flow-body">
           <div class="flow-title">Client generates a paymentId before sending</div>
-          <div class="flow-desc">The frontend creates a fresh UUID (<code>crypto.randomUUID()</code>) and includes it in the <code>POST /api/v2/transfer</code> body. The same UUID is reused for every retry of that one logical transfer.</div>
+          <div class="flow-desc">The frontend creates a fresh UUID (<code>crypto.randomUUID()</code>) and includes it in the <code>POST /api/v2/transfer</code> body. The same UUID is reused for every retry of that one logical transfer — a new UUID is only minted for a genuinely new transfer.</div>
         </div>
       </div>
       <div class="flow-step">
         <div class="flow-num">2</div>
         <div class="flow-body">
-          <div class="flow-title">Server checks if the paymentId already exists</div>
-          <div class="flow-desc">Inside a <code>@Transactional</code> method, the service looks up the <code>Payment</code> by id. If a <code>COMPLETED</code> payment already exists for that UUID, it returns the stored result immediately — no second debit, no second <code>Transaction</code> row.</div>
+          <div class="flow-title">Server looks up the paymentId first (the idempotency guard)</div>
+          <div class="flow-desc">Inside the <code>@Transactional</code> method the service calls <code>paymentRepo.findById(paymentId)</code>. If a <code>COMPLETED</code> payment already exists, it returns the stored <code>PaymentResponse</code> immediately — no second debit, no second transaction. If one exists and is still <code>PENDING</code> (a request already in flight), it returns <code>409 Conflict</code> "Payment is already in progress".</div>
         </div>
       </div>
       <div class="flow-step">
         <div class="flow-num">3</div>
         <div class="flow-body">
-          <div class="flow-title">First-time transfer executes atomically</div>
-          <div class="flow-desc">If the paymentId is new, the service validates ownership and balance, debits the source account, credits the recipient, writes two <code>Transaction</code> rows (DEBIT + CREDIT), and persists the <code>Payment</code> as <code>COMPLETED</code> — all in one DB transaction. If anything fails, the whole transaction rolls back and the payment is marked <code>FAILED</code> with a <code>failureReason</code>.</div>
+          <div class="flow-title">Validate and persist a PENDING payment</div>
+          <div class="flow-desc">For a new paymentId the service verifies the sender owns <code>fromAccount</code>, resolves the recipient by account number, and rejects same-account transfers. It then saves the <code>Payment</code> row with status <code>PENDING</code> and <code>initiatedAt = now</code>.</div>
         </div>
       </div>
       <div class="flow-step">
         <div class="flow-num">4</div>
         <div class="flow-body">
+          <div class="flow-title">Move the money atomically</div>
+          <div class="flow-desc">Balance is checked (<code>InsufficientBalanceException</code> if too low), <code>fromAccount</code> is debited, <code>toAccount</code> is credited, and two <code>Transactions</code> rows are written — a <code>DEBIT</code> on the sender and a <code>CREDIT</code> on the recipient, each with the running <code>balanceAfter</code>. The payment is marked <code>COMPLETED</code> with <code>completedAt</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-body">
+          <div class="flow-title">On failure, roll back and record why</div>
+          <div class="flow-desc">Any exception marks the payment <code>FAILED</code> with the <code>failureReason</code> and re-throws. Because the method is <code>@Transactional</code>, the re-thrown runtime exception rolls the whole transaction back — no partial debit is ever left behind. The client can safely retry with the same <code>paymentId</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-body">
           <div class="flow-title">The paymentId PK guarantees exactly-once</div>
-          <div class="flow-desc">Because <code>paymentId</code> is the primary key, even a race between two concurrent retries cannot insert two rows — the database rejects the duplicate key, so at most one transfer is ever recorded.</div>
+          <div class="flow-desc">Because <code>payment_id</code> is the primary key, two concurrent retries cannot both insert a row — the database rejects the duplicate key — so at most one transfer is ever recorded for a given idempotency key.</div>
         </div>
       </div>
     </div>
 
-    <div class="info-box"><strong>Preview before pay</strong> — <code>GET /api/v2/transfer/preview</code> validates the source and recipient accounts and returns the confirmed names and balances <em>before</em> the user commits. The actual transfer is a separate <code>POST /api/v2/transfer</code> call carrying the <code>paymentId</code>, keeping the preview side-effect-free.</div>
+    <h4>The idempotency guard (TransferServiceImpl)</h4>
+    <pre><code><span class="kw">@Transactional</span>
+<span class="kw">public</span> PaymentResponse transfer(String email, TransferRequest request) {
+    Optional&lt;Payment&gt; existing = paymentRepo.findById(request.getPaymentId());
+    <span class="kw">if</span> (existing.isPresent() &amp;&amp; existing.get().getStatus() == COMPLETED)
+        <span class="kw">return</span> toPaymentResponse(existing.get());          <span class="cmt">// replay — no double charge</span>
+    <span class="kw">if</span> (existing.isPresent() &amp;&amp; existing.get().getStatus() == PENDING)
+        <span class="kw">throw new</span> ResponseStatusException(CONFLICT, <span class="str">"Payment is already in progress"</span>);
+
+    <span class="cmt">// ... validate sender / accounts, save Payment(PENDING) ...</span>
+    <span class="kw">try</span> {
+        <span class="cmt">// debit from, credit to, write DEBIT + CREDIT transactions</span>
+        payment.setStatus(COMPLETED);
+        payment.setCompletedAt(now);
+    } <span class="kw">catch</span> (Exception e) {
+        payment.setStatus(FAILED);
+        payment.setFailureReason(e.getMessage());
+        paymentRepo.save(payment);
+        <span class="kw">throw</span> e;                                           <span class="cmt">// rolls back @Transactional</span>
+    }
+    <span class="kw">return</span> toPaymentResponse(paymentRepo.save(payment));
+}</code></pre>
+
+    <div class="info-box"><strong>Preview before pay</strong> — <code>GET /api/v2/transfer/preview</code> validates the source and recipient accounts and returns the confirmed names and balances <em>before</em> the user commits. It is read-only and carries no <code>paymentId</code>. The actual transfer is a separate <code>POST /api/v2/transfer</code> call carrying the <code>paymentId</code>, keeping the preview side-effect-free.</div>
   </div>
 </div>
 
