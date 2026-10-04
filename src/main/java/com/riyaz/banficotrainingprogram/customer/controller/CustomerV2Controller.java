@@ -1,5 +1,6 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
+import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterResponse;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
@@ -18,7 +19,7 @@ public class CustomerV2Controller {
     }
 
     @PostMapping
-    public ResponseEntity<RegisterResponse> createCustomer(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.registerCustomerWithKeycloak(request));
+    public ResponseEntity<ApiResponse<RegisterResponse>> createCustomer(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created("Customer registered", customerService.registerCustomerWithKeycloak(request)));
     }
 }
