@@ -8,6 +8,8 @@ import com.riyaz.banficotrainingprogram.account.service.AccountService;
 import com.riyaz.banficotrainingprogram.beneficiary.repository.BeneficiaryRepo;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateRequest;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterResponse;
 import com.riyaz.banficotrainingprogram.customer.entity.Customer;
@@ -108,12 +110,15 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerResponse updateMyProfile(String email, CustomerRequest request) {
-        Customer c = customerRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + email));
+    @Transactional
+    public ProfileUpdateResponse updateMyProfile(String currentEmail, ProfileUpdateRequest request) {
+        Customer c = customerRepo.findByEmail(currentEmail).orElseThrow(() -> new ResourceNotFoundException("No customer record found for email: " + currentEmail));
         c.setFirstName(request.getFirstName());
         c.setLastName(request.getLastName());
         c.setPhoneNumber(request.getPhoneNumber());
+        c.setEmail(request.getEmail());
         Customer saved = customerRepo.save(c);
-        return new CustomerResponse(saved.getId(), saved.getPan(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPhoneNumber());
+        boolean emailChanged = keycloakAdminService.updateUserProfile(currentEmail, request.getEmail(), request.getFirstName(), request.getLastName());
+        return new ProfileUpdateResponse(saved.getId(), saved.getPan(), saved.getFirstName(), saved.getLastName(), saved.getEmail(), saved.getPhoneNumber(), emailChanged);
     }
 }

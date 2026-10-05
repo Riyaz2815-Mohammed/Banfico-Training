@@ -1,8 +1,9 @@
 package com.riyaz.banficotrainingprogram.customer.controller;
 
 import com.riyaz.banficotrainingprogram.common.dto.ApiResponse;
-import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateRequest;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateResponse;
 import com.riyaz.banficotrainingprogram.customer.service.CustomerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,7 +24,7 @@ public class ProfileController {
     }
 
     @PutMapping
-    public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(@RequestBody CustomerRequest request, Authentication auth) {
+    public ResponseEntity<ApiResponse<ProfileUpdateResponse>> updateProfile(@RequestBody ProfileUpdateRequest request, Authentication auth) {
         return ResponseEntity.ok(ApiResponse.ok("Profile updated", customerService.updateMyProfile((String) auth.getPrincipal(), request)));
     }
 }

@@ -2,6 +2,8 @@ package com.riyaz.banficotrainingprogram.customer.service;
 
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.CustomerResponse;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateRequest;
+import com.riyaz.banficotrainingprogram.customer.dto.ProfileUpdateResponse;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterRequest;
 import com.riyaz.banficotrainingprogram.customer.dto.RegisterResponse;
 
@@ -16,5 +18,5 @@ public interface CustomerService {
     void deleteCustomer(UUID id);
     RegisterResponse registerCustomerWithKeycloak(RegisterRequest request);
     CustomerResponse getMyProfile(String email);
-    CustomerResponse updateMyProfile(String email, CustomerRequest request);
+    ProfileUpdateResponse updateMyProfile(String email, ProfileUpdateRequest request);
 }

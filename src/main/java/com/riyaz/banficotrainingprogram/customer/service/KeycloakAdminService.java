@@ -90,6 +90,29 @@ public class KeycloakAdminService {
         return users.stream().map(u -> new ManagerResponse((String) u.get("id"), (String) u.get("username"), (String) u.get("email"), (String) u.get("firstName"), (String) u.get("lastName"))).toList();
     }
 
+    @SuppressWarnings("unchecked")
+    public boolean updateUserProfile(String currentEmail, String newEmail, String firstName, String lastName) {
+        String token = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<List> searchResp = restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users?email=" + currentEmail + "&exact=true", HttpMethod.GET, new HttpEntity<>(headers), List.class);
+        List<Map> users = searchResp.getBody();
+        if (users == null || users.isEmpty()) return false;
+        String userId = (String) users.get(0).get("id");
+        Map<String, Object> update = new HashMap<>();
+        update.put("email", newEmail);
+        update.put("firstName", firstName);
+        update.put("lastName", lastName);
+        update.put("emailVerified", true);
+        restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users/" + userId, HttpMethod.PUT, new HttpEntity<>(update, headers), Void.class);
+        if (!currentEmail.equals(newEmail)) {
+            restTemplate.exchange(adminUrl + "/admin/realms/" + realm + "/users/" + userId + "/sessions", HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+            return true;
+        }
+        return false;
+    }
+
     public void deleteUser(String userId) {
         String token = getAdminToken();
         HttpHeaders headers = new HttpHeaders();
