@@ -1,12 +1,12 @@
 {
   "info": {
     "name": "BankApp API",
-    "description": "All BankApp Spring Boot endpoints — tested through the full nginx gateway stack.\n\nAll requests go to {{baseUrl}} (https://localhost). Get a token first via the Auth folder, then every request uses Authorization: Bearer {{token}}. nginx validates the JWT, injects X-User-* headers, and proxies to Spring Boot.\n\nApiResponse<T> wrapper — every response (success AND error) is enveloped:\n  { \"status\": 200, \"message\": \"...\", \"data\": <payload>, \"timestamp\": \"...\" }\nAll test scripts unwrap via json.data. Error responses set data: null.\n\nBefore running: disable SSL certificate verification in Postman Settings → General (self-signed cert on localhost). Fill in {{clientSecret}} and the password variables.",
+    "description": "All BankApp Spring Boot endpoints — tested through the full nginx/OpenResty gateway stack.\n\nProduction URL: https://13.202.124.135 (AWS t4g.small, ARM64 Graviton)\nAll requests go to {{baseUrl}}. Get a token first via the Auth folder, then every request uses Authorization: Bearer {{token}}. nginx validates the JWT via Lua, injects X-User-Roles header, and proxies to Spring Boot (round-robin :8080/:8081).\n\nApiResponse<T> wrapper — every response (success AND error) is enveloped:\n  { \"status\": 200, \"message\": \"...\", \"data\": <payload>, \"timestamp\": \"...\" }\nAll test scripts unwrap via json.data. Error responses set data: null.\n\nBefore running: disable SSL certificate verification in Postman Settings → General → SSL certificate verification OFF (self-signed cert on IP 13.202.124.135).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "https://localhost" },
-    { "key": "keycloakUrl", "value": "https://localhost/auth" },
+    { "key": "baseUrl", "value": "https://13.202.124.135" },
+    { "key": "keycloakUrl", "value": "https://13.202.124.135/auth" },
     { "key": "realm", "value": "bankapp" },
     { "key": "token", "value": "" },
     { "key": "riyazCustomerId", "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567891" },
@@ -18,13 +18,13 @@
     { "key": "recipientAccountNo", "value": "" },
     { "key": "demoBeneficiaryId", "value": "" },
     { "key": "paymentId", "value": "" },
-    { "key": "clientSecret", "value": "FILL_IN", "description": "Keycloak client secret for bankapp-frontend" },
-    { "key": "riyazPassword", "value": "FILL_IN" },
-    { "key": "priyaPassword", "value": "FILL_IN" },
-    { "key": "arjunPassword", "value": "FILL_IN" },
-    { "key": "snehaPassword", "value": "FILL_IN" },
-    { "key": "rahulPassword", "value": "FILL_IN" },
-    { "key": "managerPassword", "value": "FILL_IN", "description": "Password for the manager user (BankManager role)" },
+    { "key": "clientSecret", "value": "Ri8e2MP0dp1dH3VwZ0EdO4GS2RRkaAmsqYqkTgaGZz5dF5zPOaUka7KSiSO9e7yyy28oX0LspdJO4bXov4YqbL", "description": "Keycloak client secret for bankapp-frontend (production)" },
+    { "key": "riyazPassword", "value": "Riyaz@1234" },
+    { "key": "priyaPassword", "value": "Priya@1234" },
+    { "key": "arjunPassword", "value": "Arjun@1234" },
+    { "key": "snehaPassword", "value": "Sneha@1234" },
+    { "key": "rahulPassword", "value": "Rahul@1234" },
+    { "key": "managerPassword", "value": "Manager@1234", "description": "Password for the manager user (BankManager role)" },
     { "key": "registeredCustomerId", "value": "" },
     { "key": "registeredKeycloakUserId", "value": "" }
   ],

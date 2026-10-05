@@ -840,7 +840,7 @@
           <li>View all customers</li>
           <li>Create / edit / delete customers</li>
           <li>Register new users (Keycloak + DB)</li>
-          <li>Create / view / manage BankManagers</li>
+          <li>Create / view / manage BankManagers (via Managers page)</li>
           <li>View all accounts (bank-wide)</li>
           <li>Create / edit / delete accounts</li>
           <li>View all transactions</li>
@@ -873,7 +873,7 @@
           <li>Idempotent fund transfer</li>
           <li>Manage own beneficiaries</li>
           <li>View own payments</li>
-          <li>View and edit own profile</li>
+          <li>View profile (personal info, accounts, beneficiaries) and edit (email, phone, name)</li>
           <li>Personal dashboard (own balance)</li>
           <li style="text-decoration:line-through;opacity:0.4;">No access to other customers</li>
           <li style="text-decoration:line-through;opacity:0.4;">No bank-wide data</li>
@@ -912,14 +912,14 @@
       <tbody>
         <tr><td>Dashboard</td><td>✅ Bank-wide stats</td><td>✅ Bank-wide stats</td><td>✅ Personal stats</td></tr>
         <tr><td>Customers</td><td>✅ Full CRUD + Register</td><td>✅ View + Register</td><td>❌ Hidden</td></tr>
-        <tr><td>Managers</td><td>✅ View all managers</td><td>❌ Hidden</td><td>❌ Hidden</td></tr>
+        <tr><td>Managers</td><td>✅ View all managers + Create manager</td><td>❌ Hidden</td><td>❌ Hidden</td></tr>
         <tr><td>Accounts</td><td>✅ All accounts, full CRUD</td><td>✅ All accounts, read-only</td><td>✅ Own accounts only</td></tr>
         <tr><td>Account Detail</td><td>✅</td><td>✅</td><td>❌ Redirected</td></tr>
-        <tr><td>Transactions</td><td>✅ All accounts</td><td>✅ All accounts</td><td>✅ Own accounts</td></tr>
-        <tr><td>Payments</td><td>✅ All payments</td><td>✅ All payments</td><td>✅ Own payments</td></tr>
+        <tr><td>Transactions</td><td>✅ Account number lookup + date filter chips</td><td>✅ Account number lookup + date filter chips</td><td>✅ Own accounts + date filter chips</td></tr>
+        <tr><td>Payments</td><td>✅ All payments + date filter chips</td><td>✅ All payments + date filter chips</td><td>✅ Own payments + date filter chips</td></tr>
         <tr><td>Transfer</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ Idempotent transfer</td></tr>
         <tr><td>Beneficiaries</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ Add / remove</td></tr>
-        <tr><td>Profile</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ View and edit</td></tr>
+        <tr><td>Profile</td><td>❌ Hidden</td><td>❌ Hidden</td><td>✅ View (info + accounts + beneficiaries) · Edit (email, phone, name)</td></tr>
       </tbody>
     </table>
   </div>
@@ -1114,14 +1114,16 @@
     </table>
 
     <h3>Profile</h3>
-    <div class="info-box">USER role only. Scoped to the authenticated user via JWT email — no ID in the URL.</div>
+    <div class="info-box">USER role only. Scoped to the authenticated user via JWT email — no ID in the URL.<br><br>
+    <strong>GET</strong> returns the Customer record only. The frontend fetches accounts (<code>GET /api/v1/accounts</code>) and beneficiaries (<code>GET /api/v1/beneficiaries</code>) separately and assembles the full profile view client-side.<br><br>
+    <strong>PUT</strong> accepts <code>{ firstName, lastName, email, phoneNumber }</code> — PAN is never updatable. If <code>email</code> differs from the current value, Spring Boot calls the Keycloak Admin API to update the Keycloak user and invalidate all sessions (<code>DELETE /users/{id}/sessions</code>), then returns <code>emailChanged: true</code> — the frontend calls <code>signOut()</code> so the user must re-authenticate with the new email. Phone and name changes are DB-only.</div>
     <table>
       <thead>
         <tr><th>Method</th><th>Endpoint</th><th>Access</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Get own profile (Customer record)</td></tr>
-        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Update own profile (firstName, lastName, phoneNumber)</td></tr>
+        <tr><td><span class="badge badge-get">GET</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Get own Customer record (id, pan, firstName, lastName, email, phoneNumber)</td></tr>
+        <tr><td><span class="badge badge-put">PUT</span></td><td><code>/api/v1/profile</code></td><td><span class="badge badge-user">USER</span></td><td>Update firstName, lastName, email, phoneNumber. Returns <code>ProfileUpdateResponse</code> including <code>emailChanged: boolean</code>. Email change also syncs to Keycloak and forces re-login.</td></tr>
       </tbody>
     </table>
 
@@ -1595,6 +1597,30 @@
       </svg>
     </div>
 
+    <h3>nginx / OpenResty — Request Routing</h3>
+    <table>
+      <thead>
+        <tr><th>Route</th><th>Upstream</th><th>JWT Check</th><th>Rate Limit</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>GET /gateway/health</code></td><td>—</td><td>None</td><td>—</td><td>Immediate 200 — no upstream call</td></tr>
+        <tr><td><code>/auth/*</code></td><td>Keycloak :8080</td><td>None</td><td>5 req/s</td><td>All Keycloak endpoints (login, token exchange, JWKS, admin)</td></tr>
+        <tr><td><code>/api/auth/*</code></td><td>Next.js :3000</td><td>None</td><td>—</td><td>NextAuth.js callbacks — excluded from JWT check so OIDC redirects work</td></tr>
+        <tr><td><code>/api/*</code></td><td>Spring Boot :8080</td><td>RS256 (Lua)</td><td>20 req/s</td><td>JWT validated; <code>X-User-Roles</code> header injected from <code>realm_access.roles</code></td></tr>
+        <tr><td><code>/*</code></td><td>Next.js :3000</td><td>None</td><td>—</td><td>All other paths — Next.js pages, static assets, API routes</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Lua JWT Validation Flow</h4>
+    <p>On every <code>/api/*</code> request nginx runs <code>access_by_lua_file /etc/nginx/lua/jwt_verify.lua</code> which:</p>
+    <ol>
+      <li>Extracts the <code>Bearer</code> token from the <code>Authorization</code> header.</li>
+      <li>Fetches the RS256 public key from Keycloak's JWKS endpoint (<code>/auth/realms/bankapp/protocol/openid-connect/certs</code>) — result cached in nginx shared dict to avoid a Keycloak round-trip on every request.</li>
+      <li>Validates the JWT signature, <code>exp</code> (expiry), and <code>iss</code> (issuer) fields.</li>
+      <li>Extracts <code>realm_access.roles</code> and injects them as the <code>X-User-Roles</code> header (e.g. <code>ROLE_ADMIN,ROLE_USER</code>).</li>
+      <li>On any failure: returns <code>401 Unauthorized</code> with a JSON body before the request reaches Spring Boot.</li>
+    </ol>
+
     <h3>Environment Variables</h3>
     <table>
       <thead>
@@ -1859,7 +1885,7 @@ docker compose logs -f app</code></pre>
         <tr><td><strong>Transfer (v2)</strong></td><td>priya (USER)</td><td>Preview, transfer, idempotency test (re-send same paymentId)</td></tr>
         <tr><td><strong>Payments</strong></td><td>Any authenticated user</td><td>List all (staff), list own (user), get by ID</td></tr>
         <tr><td><strong>Beneficiaries</strong></td><td>priya (USER) or riyaz (ADMIN)</td><td>List own, list by customerId (staff), add, update nickname, delete</td></tr>
-        <tr><td><strong>Profile</strong></td><td>priya (USER)</td><td>Get own profile, update firstName/lastName/phoneNumber</td></tr>
+        <tr><td><strong>Profile</strong></td><td>priya (USER)</td><td>Get own profile, update email/firstName/lastName/phoneNumber (email change triggers Keycloak sync + re-login)</td></tr>
       </tbody>
     </table>
 
@@ -1881,7 +1907,7 @@ docker compose logs -f app</code></pre>
   <div class="section">
     <div class="section-label">Section 12</div>
     <h2>Production Architecture (Two VPC Instances)</h2>
-    <p>In production the system is split across two cloud instances in the same Virtual Private Cloud (VPC). Only Instance 2 has a public IP. Instance 1 (Spring Boot + PostgreSQL) is completely private — accessible only from within the VPC via security group rules.</p>
+    <p>The system is deployed across two AWS EC2 t4g.small (ARM64 Graviton2, 2 vCPU, 2 GB RAM) instances in the same VPC. Only Instance 2 has a public IP (<code>13.202.124.135</code>). Instance 1 (<code>172.31.18.69</code>) is completely private — accessible only from within the VPC via security group rules that reference Instance 2's security group ID, not a raw CIDR.</p>
 
     <div class="diagram-wrap">
       <svg width="840" height="440" viewBox="0 0 840 440" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif">
@@ -1999,14 +2025,16 @@ docker compose logs -f app</code></pre>
 
     <h3>Production Env Variables (by instance)</h3>
     <table>
-      <thead><tr><th>Instance</th><th>Variable</th><th>Example Value</th><th>Purpose</th></tr></thead>
+      <thead><tr><th>Instance</th><th>Variable</th><th>Actual Value</th><th>Purpose</th></tr></thead>
       <tbody>
-        <tr><td>Instance 1</td><td><code>INSTANCE2_PRIVATE_IP</code></td><td><code>10.0.2.10</code></td><td>Keycloak Admin URL host</td></tr>
-        <tr><td>Instance 1</td><td><code>DB_URL / DB_USERNAME / DB_PASSWORD</code></td><td>—</td><td>PostgreSQL connection</td></tr>
-        <tr><td>Instance 2</td><td><code>INSTANCE1_PRIVATE_IP</code></td><td><code>10.0.1.10</code></td><td>nginx upstream for Spring Boot (<code>SPRING_BACKEND_HOST</code>)</td></tr>
-        <tr><td>Instance 2</td><td><code>DOMAIN</code></td><td><code>bankapp.example.com</code></td><td>Keycloak <code>KC_HOSTNAME</code>, Next.js URLs</td></tr>
-        <tr><td>Instance 2</td><td><code>KEYCLOAK_REALM_URL</code></td><td><code>http://keycloak:8080/auth/realms/bankapp</code></td><td>nginx Lua public key fetch (Docker-internal)</td></tr>
-        <tr><td>Instance 2</td><td><code>NEXTAUTH_SECRET / KEYCLOAK_CLIENT_SECRET</code></td><td>—</td><td>Next.js session &amp; OIDC client</td></tr>
+        <tr><td>Instance 1</td><td><code>INSTANCE2_PRIVATE_IP</code></td><td><code>172.31.19.159</code></td><td>Keycloak Admin URL host (Spring Boot calls Keycloak on Instance 2)</td></tr>
+        <tr><td>Instance 1</td><td><code>DB_URL / DB_USERNAME / DB_PASSWORD</code></td><td>—</td><td>PostgreSQL connection (JDBC, Docker-internal)</td></tr>
+        <tr><td>Instance 1</td><td><code>JAVA_TOOL_OPTIONS</code></td><td><code>-Xms128m -Xmx384m</code></td><td>JVM heap cap — two replicas on 2 GB instance; leaves headroom for PostgreSQL</td></tr>
+        <tr><td>Instance 2</td><td><code>INSTANCE1_PRIVATE_IP</code></td><td><code>172.31.18.69</code></td><td>nginx <code>SPRING_BACKEND_HOST</code> / <code>SPRING_BACKEND_HOST_2</code> upstreams</td></tr>
+        <tr><td>Instance 2</td><td><code>DOMAIN</code></td><td><code>13.202.124.135</code></td><td>TLS cert filename, Keycloak <code>KC_HOSTNAME</code>, Next.js <code>NEXTAUTH_URL</code>, <code>NEXT_PUBLIC_*</code> build args</td></tr>
+        <tr><td>Instance 2</td><td><code>KEYCLOAK_REALM_URL</code></td><td><code>http://keycloak:8080/auth/realms/bankapp</code></td><td>nginx Lua JWKS fetch (Docker-internal, no TLS needed)</td></tr>
+        <tr><td>Instance 2</td><td><code>NEXTAUTH_SECRET / KEYCLOAK_CLIENT_SECRET</code></td><td>—</td><td>Next.js session encryption &amp; OIDC client secret</td></tr>
+        <tr><td>Instance 2</td><td><code>JAVA_OPTS_APPEND</code> (Keycloak)</td><td><code>-Xms256m -Xmx512m</code></td><td>Keycloak JVM heap cap; container <code>mem_limit: 640m</code></td></tr>
       </tbody>
     </table>
 
@@ -2014,17 +2042,100 @@ docker compose logs -f app</code></pre>
       <strong>VPC Security Groups as firewall</strong> — Instance 1's security group only allows inbound TCP 8080 from Instance 2's security group ID (not a raw CIDR). Instance 2's security group allows inbound TCP 8080 from Instance 1's security group ID only (for Keycloak Admin API). This means even if an attacker knows the private IP, they cannot reach Spring Boot without being Instance 2.
     </div>
 
-    <h3>Quick Start (Production)</h3>
-    <pre><code><span class="cmt"># Instance 2 — generate TLS cert (or copy from ACM/Let's Encrypt)</span>
-cd api-gateway/certs &amp;&amp; bash generate-certs.sh &amp;&amp; cd ../..
+    <h3>ARM64 / Graviton Compatibility</h3>
+    <div class="info-box">
+      <strong>Alpine-based JRE images have no ARM64 variant.</strong> The original Dockerfile used <code>eclipse-temurin:17-jre-alpine</code> which fails on Graviton with <em>"no match for platform in manifest"</em>. Fixed by switching to <code>maven:3.9-eclipse-temurin-17</code> (Debian) for build and <code>eclipse-temurin:17-jre-jammy</code> (Ubuntu 22.04) for runtime. Node 20 Alpine does include an ARM64 build so Next.js is unaffected.
+    </div>
 
-<span class="cmt"># Instance 1 — start Spring Boot + PostgreSQL</span>
-cp .env.example .env.instance1  <span class="cmt"># fill INSTANCE2_PRIVATE_IP</span>
-docker compose -f docker-compose.instance1.yml --env-file .env.instance1 up -d
+    <h3>Memory Management (2 GB RAM instances)</h3>
+    <table>
+      <thead><tr><th>Service</th><th>mem_limit</th><th>JVM / Node flags</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Spring Boot × 2</td><td>512 MB each</td><td><code>-Xms128m -Xmx384m</code></td><td>Two replicas on Instance 1; leaves headroom for PostgreSQL and OS overhead</td></tr>
+        <tr><td>Keycloak</td><td>640 MB</td><td><code>-Xms256m -Xmx512m</code></td><td>Keycloak is memory-hungry at startup; container cap prevents OOM-killing other services</td></tr>
+        <tr><td>Next.js (build)</td><td>400 MB (runtime)</td><td><code>NODE_OPTIONS=--max-old-space-size=1024</code></td><td>Turbopack compile was OOM-killed; explicit heap cap lets Node allocate up to 1 GB during build</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      <strong>zram swap trick for first build</strong> — On a 2 GB instance, creating a swapfile consumed all free disk space and the Docker layer cache hit <em>"no space left on device"</em>. zram creates a compressed RAM-backed swap device with <strong>zero disk usage</strong>:
+      <pre><code>sudo modprobe zram
+echo 536870912 | sudo tee /sys/block/zram0/disksize   # 512 MB
+sudo mkswap /dev/zram0 &amp;&amp; sudo swapon /dev/zram0 -p 100
+<span class="cmt"># build runs here — 512 MB of compressed virtual swap, no disk consumed</span>
+sudo swapoff /dev/zram0  # release after build</code></pre>
+    </div>
 
-<span class="cmt"># Instance 2 — start nginx + Next.js + Keycloak (start after Keycloak admin API is ready)</span>
-cp .env.example .env.instance2  <span class="cmt"># fill INSTANCE1_PRIVATE_IP, DOMAIN</span>
-docker compose -f docker-compose.instance2.yml --env-file .env.instance2 up -d</code></pre>
+    <h3>Self-signed TLS Certificate (IP SAN)</h3>
+    <p>Without a domain name the cert must include a Subject Alternative Name of type <code>IP</code> (not <code>DNS</code>). Browsers reject certs that only have the IP in the CN field. The <code>generate-certs.sh</code> script detects whether the argument looks like an IPv4 address and sets the SAN accordingly:</p>
+    <pre><code>cd api-gateway/certs &amp;&amp; bash generate-certs.sh 13.202.124.135
+<span class="cmt"># Generates 13.202.124.135.crt / .key with subjectAltName=IP:13.202.124.135</span>
+<span class="cmt"># DOMAIN=13.202.124.135 → nginx loads /etc/nginx/certs/13.202.124.135.{crt,key}</span></code></pre>
+
+    <h3>Deployment Procedure (Git Clone Workflow)</h3>
+    <pre><code><span class="cmt"># ── Both instances — Docker install ─────────────────────────────────────────</span>
+sudo apt-get update &amp;&amp; curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker ubuntu   # re-login after this
+
+<span class="cmt"># ── Instance 2 (VM1 · 13.202.124.135) — nginx · Next.js · Keycloak ─────────</span>
+sudo mkdir -p /opt/bankapp &amp;&amp; sudo chown ubuntu:ubuntu /opt/bankapp &amp;&amp; cd /opt/bankapp
+
+git clone https://github.com/&lt;user&gt;/springboot-bankapp          BankApp
+git clone https://github.com/&lt;user&gt;/springboot-bankapp          Banfico-Training-program
+git clone https://github.com/&lt;user&gt;/api-gateway                  api-gateway
+<span class="cmt"># (also clone keycloak themes if separate, or copy docker-compose.instance2.yml here)</span>
+
+<span class="cmt"># Generate self-signed cert with IP SAN</span>
+cd /opt/bankapp/api-gateway/certs &amp;&amp; bash generate-certs.sh 13.202.124.135 &amp;&amp; cd /opt/bankapp
+
+cat &gt; .env.instance2 &lt;&lt;'EOF'
+DOMAIN=13.202.124.135
+INSTANCE1_PRIVATE_IP=172.31.18.69
+KC_ADMIN_PASSWORD=&lt;strong-password&gt;
+KEYCLOAK_CLIENT_SECRET=&lt;from-keycloak-admin-api&gt;
+NEXTAUTH_SECRET=&lt;random-32-chars&gt;
+EOF
+
+docker compose -f docker-compose.instance2.yml --env-file .env.instance2 up --build -d
+
+<span class="cmt"># ── Instance 1 (VM2 · 172.31.18.69) — Spring Boot × 2 · PostgreSQL ─────────</span>
+sudo mkdir -p /opt/bankapp &amp;&amp; sudo chown ubuntu:ubuntu /opt/bankapp &amp;&amp; cd /opt/bankapp
+
+git clone https://github.com/&lt;user&gt;/springboot-bankapp Banfico-Training-program
+
+cat &gt; .env.instance1 &lt;&lt;'EOF'
+DB_URL=jdbc:postgresql://postgres:5432/bankappdb
+DB_USERNAME=bankapp
+DB_PASSWORD=&lt;strong-password&gt;
+INSTANCE2_PRIVATE_IP=172.31.19.159
+KC_ADMIN_PASSWORD=&lt;same-as-instance2&gt;
+EOF
+
+docker compose -f docker-compose.instance1.yml --env-file .env.instance1 up --build -d</code></pre>
+
+    <h3>Fetch Keycloak Client Secret (one-time)</h3>
+    <pre><code><span class="cmt"># Run on Instance 2 after Keycloak is healthy</span>
+TOKEN=$(curl -s -X POST http://localhost:8080/auth/realms/master/protocol/openid-connect/token \
+  -d "grant_type=password&amp;client_id=admin-cli&amp;username=admin&amp;password=&lt;KC_ADMIN_PASSWORD&gt;" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+CLIENT_ID=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:8080/auth/admin/realms/bankapp/clients?clientId=bankapp-frontend' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8080/auth/admin/realms/bankapp/clients/$CLIENT_ID/client-secret" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])"</code></pre>
+
+    <h3>Future Updates (Git Pull + Rebuild)</h3>
+    <pre><code><span class="cmt"># Instance 2 — update Next.js frontend</span>
+cd /opt/bankapp/BankApp &amp;&amp; git pull
+docker compose -f /opt/bankapp/docker-compose.instance2.yml --env-file /opt/bankapp/.env.instance2 \
+  up --build -d nextjs
+
+<span class="cmt"># Instance 1 — update Spring Boot API</span>
+cd /opt/bankapp/Banfico-Training-program &amp;&amp; git pull
+docker compose -f /opt/bankapp/docker-compose.instance1.yml --env-file /opt/bankapp/.env.instance1 \
+  up --build -d spring-boot-1 spring-boot-2</code></pre>
   </div>
 
   <div class="doc-footer">
