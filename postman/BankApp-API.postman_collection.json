@@ -750,18 +750,29 @@
     },
     {
       "name": "Profile",
-      "description": "GET /api/v1/profile — returns the logged-in user's own profile.\nPUT /api/v1/profile — updates firstName, lastName, phoneNumber. Email and PAN cannot be changed.\n\nUser role only — staff (admin/BankManager) get 403.",
+      "description": "GET /api/v1/profile — returns the logged-in user's own Customer record.\nPUT /api/v1/profile — updates firstName, lastName, email, phoneNumber. PAN cannot be changed.\n\nIf email changes, Spring Boot syncs to Keycloak (updates user + invalidates all sessions) and returns emailChanged: true. The user must re-login with the new email.\n\nUser role only — staff (admin/BankManager) get 403.",
       "item": [
         {
           "name": "Get My Profile (user only)",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/profile",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "description": "Returns id, pan, firstName, lastName, email, phoneNumber for the logged-in user."
           }
         },
         {
           "name": "Update My Profile (user only)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "const json = pm.response.json();",
+            "const profile = json.data;",
+            "if (profile) {",
+            "  console.log('Profile updated: ' + profile.firstName + ' ' + profile.lastName + ' (' + profile.email + ')');",
+            "  if (profile.emailChanged) {",
+            "    console.log('EMAIL CHANGED — all Keycloak sessions invalidated. Re-login required with new email.');",
+            "  }",
+            "}"
+          ]}}],
           "request": {
             "method": "PUT",
             "url": "{{baseUrl}}/api/v1/profile",
@@ -771,9 +782,9 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"phoneNumber\": \"9876500001\"\n}"
+              "raw": "{\n  \"firstName\": \"Priya\",\n  \"lastName\": \"Sharma\",\n  \"email\": \"priya@bankapp.com\",\n  \"phoneNumber\": \"9876500001\"\n}"
             },
-            "description": "Updates firstName, lastName and phoneNumber. Email and PAN are read-only — passing them in the body has no effect."
+            "description": "Updates firstName, lastName, email and phoneNumber. PAN is never updatable.\n\nIf email changes: Keycloak user is updated and all sessions are invalidated. Response includes emailChanged: true — the user must re-authenticate with the new email.\n\nResponse shape: { id, pan, firstName, lastName, email, phoneNumber, emailChanged }"
           }
         }
       ]

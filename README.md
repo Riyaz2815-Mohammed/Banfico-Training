@@ -179,3 +179,9 @@ For the complete product and technical specification see `Product.html`.
 **Custom Keycloak login theme** — the `bankapp` theme (`keycloak/themes/bankapp/`) overrides the default Keycloak UI with FreeMarker templates and CSS that match BankApp's design. Mounted as a read-only volume.
 
 **Idempotent transfers** — `POST /api/v2/transfer` uses a client-generated `paymentId` UUID as an idempotency key. Re-sending the same `paymentId` returns the existing payment without double-charging.
+
+**Profile Keycloak sync** — `PUT /api/v1/profile` accepts `{firstName, lastName, email, phoneNumber}` (PAN is never updatable). If the email changes, Spring Boot calls the Keycloak Admin API to update the user and invalidate all sessions (`DELETE /users/{id}/sessions`), then returns `emailChanged: true`. The frontend calls `signOut()` immediately, forcing re-authentication with the new email. Name and phone changes are DB-only.
+
+**Transactions account lookup (staff)** — BankManager and Admin see an account number text input on the Transactions page instead of a bank-wide card grid. Entering a 12-digit account number resolves the account via `GET /api/v1/accounts/lookup` and loads its transactions.
+
+**Date filter chips** — Both Transactions and Payments pages show `All / Last 5 days / Last 10 days / Last 30 days` filter chips above the table. Filtering is client-side on the current page (API returns most-recent-first, so page 0 always has the freshest records).
