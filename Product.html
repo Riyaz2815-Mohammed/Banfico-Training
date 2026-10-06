@@ -2042,6 +2042,30 @@ docker compose logs -f app</code></pre>
       <strong>VPC Security Groups as firewall</strong> — Instance 1's security group only allows inbound TCP 8080 from Instance 2's security group ID (not a raw CIDR). Instance 2's security group allows inbound TCP 8080 from Instance 1's security group ID only (for Keycloak Admin API). This means even if an attacker knows the private IP, they cannot reach Spring Boot without being Instance 2.
     </div>
 
+    <h3>Load Balancing — nginx Upstream (Round-Robin)</h3>
+    <p>Spring Boot runs as <strong>two containers from the same image</strong> on Instance 1: <code>bankapp-api-1</code> (host port <code>8080</code>) and <code>bankapp-api-2</code> (host port <code>8081</code>). The nginx gateway on Instance 2 defines an <code>upstream</code> block listing both, and load-balances <code>/api/*</code> traffic across them using nginx's default <strong>round-robin</strong> algorithm — request 1 → :8080, request 2 → :8081, request 3 → :8080, and so on. <code>keepalive 32</code> keeps idle connections open so each request does not pay a fresh TCP handshake.</p>
+    <pre><code><span class="cmt"># api-gateway/conf.d/upstreams.conf (rendered from template at container start)</span>
+upstream spring_backend {
+    server <span class="str">172.31.18.69:8080</span>;   <span class="cmt"># bankapp-api-1</span>
+    server <span class="str">172.31.18.69:8081</span>;   <span class="cmt"># bankapp-api-2</span>
+    keepalive 32;
+}</code></pre>
+    <div class="info-box">
+      <strong>Security group must allow BOTH ports.</strong> Because the gateway round-robins to <code>:8080</code> <em>and</em> <code>:8081</code> on Instance 1's private IP, Instance 1's security group inbound rule must allow TCP <strong>8080–8081</strong> from Instance 2's security group. If only <code>8080</code> is open, nginx cannot reach <code>api-2</code>: every other request stalls for the <code>proxy_connect_timeout</code> (10&nbsp;s) before nginx marks that replica down and falls back to <code>api-1</code> — so the second replica serves no traffic and users see intermittent ~10&nbsp;s delays. Opening <code>8081</code> is what makes the load balancing real.
+    </div>
+
+    <h3>CORS Handling (TLS Termination &amp; Allowed Origins)</h3>
+    <p>Because TLS terminates at the gateway and the <strong>gateway&nbsp;→&nbsp;Spring Boot hop is plain HTTP</strong>, Spring sees its own scheme as <code>http</code> while the browser's <code>Origin</code> header is <code>https://13.202.124.135</code>. The scheme mismatch makes Spring treat even same-host calls as <em>cross-origin</em>, so Spring Security validates the <code>Origin</code> against an allow-list. State-changing verbs (POST / PUT / DELETE) carry an <code>Origin</code> header, so they are checked; same-origin GETs do not carry one and pass untouched — which is why page loads worked but "create manager" returned <code>403 Invalid CORS request</code> until the production origin was allow-listed.</p>
+    <p>The allowed origins are injected via an environment variable rather than hardcoded, so the same image works in dev and prod:</p>
+    <pre><code><span class="cmt"># application.properties — env-driven, with a dev-safe default</span>
+app.cors.allowed-origins=${CORS_ALLOWED_ORIGINS:https://localhost,http://localhost:3000}
+
+<span class="cmt"># .env.instance1 (Instance 1) — the public origin the browser uses</span>
+CORS_ALLOWED_ORIGINS=https://13.202.124.135</code></pre>
+    <div class="info-box">
+      <strong>The allowed origin is the public <code>https</code> URL, not the internal <code>http</code> address.</strong> CORS is a string match against the browser's <code>Origin</code> header (always <code>https://13.202.124.135</code>) — the plain-HTTP internal hop is irrelevant to that match. An alternative enterprise approach is <code>server.forward-headers-strategy=framework</code>, which makes Spring honour nginx's <code>X-Forwarded-Proto</code>, reconstruct the request as <code>https</code>, and recognise it as same-origin so CORS never triggers.
+    </div>
+
     <h3>ARM64 / Graviton Compatibility</h3>
     <div class="info-box">
       <strong>Alpine-based JRE images have no ARM64 variant.</strong> The original Dockerfile used <code>eclipse-temurin:17-jre-alpine</code> which fails on Graviton with <em>"no match for platform in manifest"</em>. Fixed by switching to <code>maven:3.9-eclipse-temurin-17</code> (Debian) for build and <code>eclipse-temurin:17-jre-jammy</code> (Ubuntu 22.04) for runtime. Node 20 Alpine does include an ARM64 build so Next.js is unaffected.
