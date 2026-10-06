@@ -674,7 +674,7 @@
         <line x1="280" y1="252" x2="318" y2="330" stroke="#1a7a4a" stroke-width="1.8" marker-end="url(#arr)"/>
         <text x="322" y="285" text-anchor="middle" font-size="9" fill="#1a7a4a" font-weight="600">/api/* + X-User-Roles</text>
 
-        <!-- Next.js → nginx (token exchange via localhost) -->
+        <!-- Next.js → nginx (token exchange via gateway) -->
         <path d="M 340 125 Q 300 140 272 162" fill="none" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr2)"/>
         <text x="245" y="142" text-anchor="middle" font-size="8.5" fill="#94a3b8">token exch. (via gateway)</text>
 
@@ -1736,7 +1736,7 @@ docker compose logs -f app</code></pre>
         <line x1="247" y1="250" x2="248" y2="250" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
         <line x1="185" y1="244" x2="248" y2="244" stroke="#2e7dd1" stroke-width="2" marker-end="url(#a1)"/>
         <text x="91"   y="245" text-anchor="middle" font-size="8" fill="#2e7dd1">GET /api/auth/callback</text>
-        <!-- nextjs server → nginx → keycloak (token exchange via localhost) -->
+        <!-- nextjs server → nginx → keycloak (token exchange via gateway) -->
         <line x1="310" y1="258" x2="248" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
         <line x1="248" y1="258" x2="373" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
         <text x="330"  y="268" text-anchor="middle" font-size="8" fill="#1a7a4a">POST token (server→server, via nginx on :443)</text>
