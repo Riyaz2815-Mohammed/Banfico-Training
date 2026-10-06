@@ -676,7 +676,7 @@
 
         <!-- Next.js → nginx (token exchange via localhost) -->
         <path d="M 340 125 Q 300 140 272 162" fill="none" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arr2)"/>
-        <text x="245" y="142" text-anchor="middle" font-size="8.5" fill="#94a3b8">token exch. (via localhost)</text>
+        <text x="245" y="142" text-anchor="middle" font-size="8.5" fill="#94a3b8">token exch. (via gateway)</text>
 
         <!-- Spring Boot → Keycloak (admin) -->
         <line x1="395" y1="290" x2="395" y2="257" stroke="#c47a1a" stroke-width="1.4" stroke-dasharray="5,3" marker-end="url(#arrg)"/>
@@ -709,7 +709,7 @@
         <tr><td>nginx</td><td>Keycloak (internal)</td><td>HTTP proxy (/auth/)</td><td>OIDC login page, token endpoints</td></tr>
         <tr><td>nginx Lua</td><td>Keycloak (internal)</td><td>HTTP</td><td>Fetch RS256 public key (cached 1 h)</td></tr>
         <tr><td>nginx</td><td>Spring Boot (internal)</td><td>HTTP + X-User-Roles</td><td>Proxied API calls after JWT validation</td></tr>
-        <tr><td>Next.js (server)</td><td>nginx (:443)</td><td>HTTPS via <code>localhost</code></td><td>Token exchange, userinfo — routed through nginx (container <code>/etc/hosts</code> remaps <code>localhost</code> → gateway IP)</td></tr>
+        <tr><td>Next.js (server)</td><td>nginx (:443)</td><td>HTTPS</td><td>Token exchange &amp; refresh — server-side call to the public issuer <code>https://13.202.124.135/auth/realms/bankapp</code>, reaching the gateway's public IP and proxied to Keycloak (same issuer the browser uses, so the JWT <code>iss</code> matches)</td></tr>
         <tr><td>Spring Boot</td><td>Keycloak Admin API</td><td>HTTP + Admin Token</td><td>Create / delete Keycloak users on registration</td></tr>
         <tr><td>Spring Boot</td><td>PostgreSQL</td><td>JDBC (TCP)</td><td>All database read / write operations</td></tr>
       </tbody>
@@ -739,7 +739,7 @@
         <div class="flow-num">2</div>
         <div class="flow-body">
           <div class="flow-title">Redirect to Keycloak (via nginx)</div>
-          <div class="flow-desc">Clicking "Sign In" sends the user to <code>https://localhost/auth/realms/bankapp/protocol/openid-connect/auth</code>. nginx proxies <code>/auth/*</code> to Keycloak internally — the browser never hits Keycloak directly.</div>
+          <div class="flow-desc">Clicking "Sign In" sends the user to <code>https://13.202.124.135/auth/realms/bankapp/protocol/openid-connect/auth</code>. nginx proxies <code>/auth/*</code> to Keycloak internally — the browser never hits Keycloak directly.</div>
         </div>
       </div>
       <div class="flow-step">
@@ -753,14 +753,14 @@
         <div class="flow-num">4</div>
         <div class="flow-body">
           <div class="flow-title">Authorization code returned</div>
-          <div class="flow-desc">Keycloak redirects back to <code>https://localhost/api/auth/callback/keycloak</code> with a one-time auth code. nginx routes <code>/api/auth/*</code> to Next.js (before <code>/api/*</code> — more specific prefix wins).</div>
+          <div class="flow-desc">Keycloak redirects back to <code>https://13.202.124.135/api/auth/callback/keycloak</code> with a one-time auth code. nginx routes <code>/api/auth/*</code> to Next.js (before <code>/api/*</code> — more specific prefix wins).</div>
         </div>
       </div>
       <div class="flow-step">
         <div class="flow-num">5</div>
         <div class="flow-body">
           <div class="flow-title">NextAuth exchanges code for tokens</div>
-          <div class="flow-desc">Server-side call to the Keycloak token endpoint at <code>https://localhost/auth/realms/bankapp/...</code>. The container's <code>/etc/hosts</code> remaps <code>localhost</code> to the gateway IP, so this backchannel call is routed <strong>through nginx</strong> (same issuer the browser sees). Returns <code>access_token</code> (JWT), <code>id_token</code>, and <code>refresh_token</code>. Roles extracted from <code>realm_access.roles</code> and stored in an encrypted session cookie.</div>
+          <div class="flow-desc">Server-side call to the Keycloak token endpoint at <code>https://13.202.124.135/auth/realms/bankapp/...</code> — the <em>same public issuer the browser uses</em>, reached via the gateway's public IP and proxied by nginx to Keycloak. One issuer URL everywhere keeps the JWT <code>iss</code> claim consistent and avoids OIDC discovery mismatches. Returns <code>access_token</code> (JWT), <code>id_token</code>, and <code>refresh_token</code>. Roles extracted from <code>realm_access.roles</code> and stored in an encrypted session cookie.</div>
         </div>
       </div>
       <div class="flow-step">
@@ -820,7 +820,7 @@
     <span class="key">"roles"</span>: [<span class="str">"user"</span>]           <span class="cmt">// or "BankManager", "admin"</span>
   },
   <span class="key">"exp"</span>: <span class="num">1756300000</span>,           <span class="cmt">// expiry — token auto-refreshed by NextAuth</span>
-  <span class="key">"iss"</span>: <span class="str">"https://localhost/auth/realms/bankapp"</span>   <span class="cmt">// Keycloak reads X-Forwarded-* from nginx (KC_PROXY_HEADERS)</span>
+  <span class="key">"iss"</span>: <span class="str">"https://13.202.124.135/auth/realms/bankapp"</span>   <span class="cmt">// Keycloak reads X-Forwarded-* from nginx (KC_PROXY_HEADERS)</span>
 }</code></pre>
   </div>
 </div>
@@ -1739,7 +1739,7 @@ docker compose logs -f app</code></pre>
         <!-- nextjs server → nginx → keycloak (token exchange via localhost) -->
         <line x1="310" y1="258" x2="248" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
         <line x1="248" y1="258" x2="373" y2="258" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#a3)"/>
-        <text x="330"  y="268" text-anchor="middle" font-size="8" fill="#1a7a4a">POST token (server→server, via nginx on localhost)</text>
+        <text x="330"  y="268" text-anchor="middle" font-size="8" fill="#1a7a4a">POST token (server→server, via nginx on :443)</text>
 
         <!-- Flow 4: API Call -->
         <rect x="0" y="275" width="750" height="95" rx="0" fill="#f0f6ff"/>
@@ -1795,11 +1795,11 @@ docker compose logs -f app</code></pre>
         <line x1="536" y1="530" x2="556" y2="530" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4,2"/>
         <text x="560" y="534" font-size="9" fill="#5a6e8a">Responses (grey dashed)</text>
         <line x1="16" y1="548" x2="36" y2="548" stroke="#1a7a4a" stroke-width="1.8" stroke-dasharray="5,3"/>
-        <text x="40" y="552" font-size="9" fill="#5a6e8a">Server-to-server (via nginx on localhost)</text>
+        <text x="40" y="552" font-size="9" fill="#5a6e8a">Server-to-server (via nginx on :443)</text>
       </svg>
     </div>
 
-    <div class="info-box" style="margin-top:16px"><strong>Token exchange goes through nginx</strong> — When Next.js (server side) exchanges the auth code for tokens (Flow ③) or refreshes a token, it calls the <em>same public issuer the browser uses</em> — <code>https://localhost/auth/realms/bankapp</code>. The Next.js container's <code>/etc/hosts</code> is patched at startup so <code>localhost</code> resolves to the gateway container's IP, meaning the backchannel call is proxied through nginx on :443 like every other request. This keeps a single issuer/hostname everywhere (so the JWT <code>iss</code> claim matches) and avoids OIDC discovery mismatches. The browser never sees Keycloak's internal address.</div>
+    <div class="info-box" style="margin-top:16px"><strong>Token exchange goes through nginx</strong> — When Next.js (server side) exchanges the auth code for tokens (Flow ③) or refreshes a token, it calls the <em>same public issuer the browser uses</em> — <code>https://13.202.124.135/auth/realms/bankapp</code>. In production this backchannel call reaches the gateway's public IP and is proxied through nginx on :443 to Keycloak, exactly like a browser request. Using one issuer/hostname everywhere keeps the JWT <code>iss</code> claim matching and avoids OIDC discovery mismatches. The browser never sees Keycloak's internal address.</div>
   </div>
 </div>
 
