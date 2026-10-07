@@ -2066,6 +2066,21 @@ CORS_ALLOWED_ORIGINS=https://13.202.124.135</code></pre>
       <strong>The allowed origin is the public <code>https</code> URL, not the internal <code>http</code> address.</strong> CORS is a string match against the browser's <code>Origin</code> header (always <code>https://13.202.124.135</code>) — the plain-HTTP internal hop is irrelevant to that match. An alternative enterprise approach is <code>server.forward-headers-strategy=framework</code>, which makes Spring honour nginx's <code>X-Forwarded-Proto</code>, reconstruct the request as <code>https</code>, and recognise it as same-origin so CORS never triggers.
     </div>
 
+    <h3>Concurrency — Workers, Threads &amp; Connection Pools</h3>
+    <p>Each layer funnels concurrency down to protect the one below it. nginx is <strong>event-driven</strong> — a few worker processes handle thousands of connections without a thread each. Spring Boot (Tomcat) is <strong>thread-per-request</strong> — one thread per active request, capped by the pool. HikariCP keeps a <strong>small pool</strong> of reusable DB connections so PostgreSQL is never overwhelmed.</p>
+    <table>
+      <thead><tr><th>Layer</th><th>Resource</th><th>Limit (per instance)</th></tr></thead>
+      <tbody>
+        <tr><td>nginx gateway</td><td>worker processes</td><td><code>auto</code> = CPU cores (2)</td></tr>
+        <tr><td>nginx gateway</td><td>connections / worker</td><td><code>1024</code></td></tr>
+        <tr><td>Gateway → Spring</td><td>keepalive connections</td><td><code>32</code> (reused, round-robin)</td></tr>
+        <tr><td>Spring Boot (Tomcat)</td><td>request threads</td><td><code>200</code> (default)</td></tr>
+        <tr><td>Spring Boot (HikariCP)</td><td>DB connections</td><td><code>5</code> → 10 total across 2 apps</td></tr>
+        <tr><td>PostgreSQL</td><td>cores</td><td>2 (t4g.small)</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box"><strong>Why the DB pool is small.</strong> Throughput is bounded by the database's CPU cores, not by connection count — past <code>(cores × 2) + 1</code>, extra connections only add context-switching and lock contention. A small pool with fast (millisecond) turnover keeps every query fast; surplus request threads queue briefly rather than overwhelming PostgreSQL.</div>
+
     <h3>ARM64 / Graviton Compatibility</h3>
     <div class="info-box">
       <strong>Alpine-based JRE images have no ARM64 variant.</strong> The original Dockerfile used <code>eclipse-temurin:17-jre-alpine</code> which fails on Graviton with <em>"no match for platform in manifest"</em>. Fixed by switching to <code>maven:3.9-eclipse-temurin-17</code> (Debian) for build and <code>eclipse-temurin:17-jre-jammy</code> (Ubuntu 22.04) for runtime. Node 20 Alpine does include an ARM64 build so Next.js is unaffected.
