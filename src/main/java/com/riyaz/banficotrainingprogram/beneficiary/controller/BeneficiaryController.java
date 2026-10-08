@@ -23,10 +23,10 @@ public class BeneficiaryController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<BeneficiaryResponse>>> getBeneficiaries(@RequestParam(required = false) UUID customerId, Authentication auth) {
+    public ResponseEntity<ApiResponse<List<BeneficiaryResponse>>> getBeneficiaries(@RequestParam(required = false) UUID customerId, @RequestParam(required = false) UUID accountId, Authentication auth) {
         String email = (String) auth.getPrincipal();
         boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_BANKMANAGER"));
-        return ResponseEntity.ok(ApiResponse.ok("Beneficiaries retrieved", beneficiaryService.getBeneficiaries(email, customerId, isStaff)));
+        return ResponseEntity.ok(ApiResponse.ok("Beneficiaries retrieved", beneficiaryService.getBeneficiaries(email, customerId, accountId, isStaff)));
     }
 
     @PostMapping

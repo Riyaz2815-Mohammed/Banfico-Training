@@ -19,6 +19,10 @@ public class Beneficiary {
     private Customer customer;
 
     @ManyToOne
+    @JoinColumn(name = "source_account_id")
+    private Account sourceAccount;
+
+    @ManyToOne
     @JoinColumn(name = "beneficiary_account_id", nullable = false)
     private Account beneficiaryAccount;
 
@@ -27,14 +31,16 @@ public class Beneficiary {
 
     protected Beneficiary() {}
 
-    public Beneficiary(Customer customer, Account beneficiaryAccount, String nickname) {
+    public Beneficiary(Customer customer, Account sourceAccount, Account beneficiaryAccount, String nickname) {
         this.customer = customer;
+        this.sourceAccount = sourceAccount;
         this.beneficiaryAccount = beneficiaryAccount;
         this.nickname = nickname;
     }
 
     public UUID getId() { return id; }
     public Customer getCustomer() { return customer; }
+    public Account getSourceAccount() { return sourceAccount; }
     public Account getBeneficiaryAccount() { return beneficiaryAccount; }
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }

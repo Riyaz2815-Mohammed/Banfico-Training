@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public class BeneficiaryRequest {
     private UUID accountId;
+    private UUID sourceAccountId;
     private String nickname;
 
     public BeneficiaryRequest() {}
@@ -14,6 +15,9 @@ public class BeneficiaryRequest {
     @NotNull(message = "Account ID is missing")
     public UUID getAccountId() { return accountId; }
     public void setAccountId(UUID accountId) { this.accountId = accountId; }
+
+    public UUID getSourceAccountId() { return sourceAccountId; }
+    public void setSourceAccountId(UUID sourceAccountId) { this.sourceAccountId = sourceAccountId; }
 
     @NotBlank(message = "Nickname is missing")
     public String getNickname() { return nickname; }
